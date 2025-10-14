@@ -1,6 +1,6 @@
 export class Router {
 	private _req: Request | undefined;
-	private routes: { pathname: string; method: string; callback: (req: Request, params: Record<string, string | undefined>) => Response }[] =
+	private routes: { pathname: string; method: string; callback: (req: Request, params: Record<string, string | undefined>) => Response | Promise<Response> }[] =
 		[];
 
 	setRequest(request: Request) {
@@ -14,20 +14,20 @@ export class Router {
 	route(data: string | {
 		pathname: string;
 		method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | string;
-	}, callback: (req: Request, params: Record<string, string | undefined>) => Response) {
+	}, callback: (req: Request, params: Record<string, string | undefined>) => Response | Promise<Response>) {
 		if (typeof data === "string") {
-			this.routes.push({ pathname: data, method: "get", callback });
+			this.routes.push({ pathname: data, method: "GET", callback: (req, params) => callback(req, params) });
 		} else {
 			this.routes.push({
 				pathname: data.pathname,
 				method: data.method,
-				callback,
+				callback: (req, params) => callback(req, params),
 			});
 		}
 	}
 
 	serve() {
-		Deno.serve({ port: 4242, hostname: "0.0.0.0" }, (_req: Request) => {
+		Deno.serve({ port: 4242, hostname: "0.0.0.0" }, async (_req: Request) => {
 			this.setRequest(_req);
 
 			for (const route of this.routes) {
@@ -35,7 +35,7 @@ export class Router {
 				const params = path.exec(_req.url)?.pathname.groups || {};
 
 				if (path.exec(_req.url) && _req.method === route.method) {
-					return route.callback(_req, params);
+					return await route.callback(_req, params);
 				}
 			}
 
