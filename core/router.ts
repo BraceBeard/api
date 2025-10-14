@@ -1,6 +1,6 @@
 export class Router {
 	private _req: Request | undefined;
-	private routes: { pathname: string; callback: (req: Request, params: Record<string, string | undefined>) => Response }[] =
+	private routes: { pathname: string; method: string; callback: (req: Request, params: Record<string, string | undefined>) => Response }[] =
 		[];
 
 	setRequest(request: Request) {
@@ -11,8 +11,19 @@ export class Router {
 		this._req = request;
 	}
 
-	addRoute(pathname: string, callback: (req: Request, params: Record<string, string | undefined>) => Response) {
-		this.routes.push({ pathname, callback });
+	route(data: string | {
+		pathname: string;
+		method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | string;
+	}, callback: (req: Request, params: Record<string, string | undefined>) => Response) {
+		if (typeof data === "string") {
+			this.routes.push({ pathname: data, method: "get", callback });
+		} else {
+			this.routes.push({
+				pathname: data.pathname,
+				method: data.method,
+				callback,
+			});
+		}
 	}
 
 	serve() {
@@ -23,7 +34,7 @@ export class Router {
 				const path = new URLPattern({ pathname: route.pathname });
 				const params = path.exec(_req.url)?.pathname.groups || {};
 
-				if (path.exec(_req.url)) {
+				if (path.exec(_req.url) && _req.method === route.method) {
 					return route.callback(_req, params);
 				}
 			}

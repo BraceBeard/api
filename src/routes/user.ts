@@ -8,4 +8,17 @@ export function UserRouteHandler(
 	return new Response("User page");
 }
 
-router.addRoute("/user/:id/:name", UserRouteHandler);
+export function UserADDRouteHandler(
+	_req: Request,
+	params: Record<string, string | undefined>,
+): Response {
+	console.log(params);
+	console.log(_req.headers.get("Authorization"));
+	return new Response("User add page");
+}
+
+router.route("/user/:id/:name", UserRouteHandler);
+router.route({
+	pathname: "/user/add",
+	method: "POST",
+}, UserADDRouteHandler);
