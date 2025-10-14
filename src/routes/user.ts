@@ -1,4 +1,4 @@
-import { router } from "./shared/index.ts";
+import { router } from "../shared/index.ts";
 
 export function UserRouteHandler(
 	_req: Request,

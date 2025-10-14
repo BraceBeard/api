@@ -1,7 +1,7 @@
 import { router } from "./src/shared/index.ts";
 
-import "./src/home.ts";
-import "./src/test.ts";
-import "./src/user.ts";
+import "./src/routes/index.ts";
+import "./src/routes/test.ts";
+import "./src/routes/user.ts";
 
 router.serve();
