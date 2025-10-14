@@ -1,4 +1,8 @@
+<<<<<<< HEAD:src/user.ts
 import { router } from "./shared/index.ts";
+=======
+import { router } from "../shared/index.ts";
+>>>>>>> upstream/main:src/routes/user.ts
 
 export function UserRouteHandler(
 	_req: Request,
