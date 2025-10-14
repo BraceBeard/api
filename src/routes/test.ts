@@ -4,4 +4,4 @@ export function TestRouteHandler(_req: Request): Response {
 	return new Response("Test page: " + Deno.env.get("PRUEBA"));
 }
 
-router.addRoute("/test", TestRouteHandler);
+router.route("/test", TestRouteHandler);

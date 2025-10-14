@@ -4,4 +4,4 @@ export function homeRouteHandler(_req: Request): Response {
 	return new Response("It's working!");
 }
 
-router.addRoute("/", homeRouteHandler);
+router.route("/", homeRouteHandler);
