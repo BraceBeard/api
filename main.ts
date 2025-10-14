@@ -1,12 +1,7 @@
-import { Router } from "./core/router.ts";
-import { homeRouteHandler } from "./src/home.ts";
-import { TestRouteHandler } from "./src/test.ts";
-import { UserRouteHandler } from "./src/user.ts";
+import { router } from "./src/shared/index.ts";
 
-const router = new Router();
-
-router.addRoute("/", homeRouteHandler);
-router.addRoute("/test", TestRouteHandler);
-router.addRoute("/user/:id/:name", UserRouteHandler);
+import "./src/home.ts";
+import "./src/test.ts";
+import "./src/user.ts";
 
 router.serve();
