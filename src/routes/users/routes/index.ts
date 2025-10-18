@@ -1,14 +1,31 @@
 import { User } from "../models/user.model.ts";
 import { kv, router } from "../../../../core/shared/index.ts";
 import { Keys } from "../data/user.data.ts";
+import { AuthenticatedRequest, authMiddleware } from "../../../core/auth.ts";
 
 /**
  * Obtiene todos los usuarios de la base de datos.
  */
 export async function UsersRouteHandler(
-  _req: Request,
+  req: AuthenticatedRequest,
 ): Promise<Response> {
   try {
+    const authenticatedUser = req.user;
+    console.log(authenticatedUser);
+    if (!authenticatedUser) {
+      return new Response(JSON.stringify({ error: "No autorizado" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (authenticatedUser.role !== "admin") {
+      return new Response(JSON.stringify({ error: "No tienes permiso para realizar esta acción" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const list: User[] = [];
     const users = kv.list({ prefix: [Keys.USERS]});
 
@@ -35,4 +52,4 @@ export async function UsersRouteHandler(
   }
 }
 
-router.route("/users", UsersRouteHandler);
+router.route("/users", authMiddleware, UsersRouteHandler);
