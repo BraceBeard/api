@@ -1,4 +1,4 @@
-import { removeTrailingSlash } from "../src/shared/utils.ts";
+import { removeTrailingSlash } from "./shared/utils.ts";
 
 export class Router {
 	private _req: Request | undefined;
