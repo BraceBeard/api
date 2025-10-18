@@ -4,7 +4,7 @@ This directory contains static assets served by the API server.
 
 ## Structure
 
-```
+```plaintext
 src/public/
 ├── index.html          # Main documentation page
 ├── css/
@@ -38,9 +38,9 @@ All files in this directory are accessible under the `/assets` route:
 ```
 
 ### Direct Access
-- Documentation: http://localhost:4242/assets/index.html
-- Stylesheet: http://localhost:4242/assets/css/main.css
-- JavaScript: http://localhost:4242/assets/js/main.js
+- [Documentation](http://localhost:4242/assets/index.html)
+- [Stylesheet](http://localhost:4242/assets/css/main.css)
+- [JavaScript](http://localhost:4242/assets/js/main.js)
 
 ## Security
 

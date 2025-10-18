@@ -12,9 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Export a test function for unit testing
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        greet: (name) => `Hello, ${name}!`
-    };
+// Export para testing con ES modules
+export const greet = (name) => `Hello, ${name}!`;
+
+// Compatibilidad con navegador (global)
+if (typeof window !== 'undefined') {
+    window.greet = greet;
+} else if (typeof globalThis !== 'undefined') {
+    globalThis.greet = greet;
 }

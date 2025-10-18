@@ -20,8 +20,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const endpoints = document.querySelectorAll('.endpoint-list li');
     endpoints.forEach(endpoint => {
         endpoint.addEventListener('click', function() {
-            const code = this.querySelector('code').textContent;
-            console.log(`Endpoint clicked: ${code}`);
+            const codeElement = this.querySelector('code');
+            if (codeElement) {
+                console.log(`Endpoint clicked: ${codeElement.textContent}`);
+            } else {
+                console.warn('No <code> element found in endpoint:', this);
+            }
         });
     });
     

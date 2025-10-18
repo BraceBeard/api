@@ -7,11 +7,10 @@ Un servidor HTTP para Deno, ligero, de alto rendimiento y con cero dependencias.
 - **Router de Alto Rendimiento**: Optimizado con indexación por método HTTP y cacheo de patrones `URLPattern`.
 - **Configuración Flexible**: Puerto, hostname y logging configurables.
 - **Parámetros Dinámicos**: Soporte completo para rutas con parámetros (ej: `/user/:id`).
-- **Middlewares**: Sistema de middlewares flexible, con soporte para middlewares globales y específicos por ruta, incluyendo la capacidad de cortocircuitar solicitudes.
-- **Servidor de Archivos Estáticos**: Sirve archivos estáticos de manera eficiente y segura con `serveDir`.
+- **Middlewares**: Sistema de middlewares flexible, con soporte para middlewares globales y específicos por ruta.
+- **Servidor de Archivos Estáticos**: Sirve archivos estáticos de manera eficiente y segura.
 - **Logging Avanzado**: Sistema de logs con colores, timestamps y medición de performance.
-- **Hot Reload**: Desarrollo ágil con recarga automática usando `deno task dev`.
-- **Variables de Entorno**: Carga automática desde archivo `.env`.
+- **Hot Reload**: Desarrollo ágil con recarga automática.
 - **TypeScript Nativo**: Código limpio y tipado sin necesidad de transpilación.
 - **Cero Dependencias Externas**: Construido únicamente con la librería estándar de Deno.
 
@@ -48,7 +47,7 @@ deno task dev
 Esto iniciará el servidor en `http://0.0.0.0:4242` con hot reload habilitado.
 
 **Salida esperada:**
-```
+```plaintext
 🚀 Server listening on http://0.0.0.0:4242
 [2025-10-18T21:30:27.332Z] POST    / 200 1.35ms
 [2025-10-18T21:30:37.307Z] POST    /user/add/ 200 13.63ms
@@ -63,7 +62,7 @@ deno run --allow-net --allow-read --allow-env --env-file src/main.ts
 
 ## 📁 Estructura del Proyecto
 
-```
+```plaintext
 api/
 ├── core/                  # Lógica central del router
 │   ├── router.ts          # Clase Router principal
@@ -78,7 +77,6 @@ api/
 │   └── routes/            # Definición de rutas
 │       ├── index.ts
 │       ├── static.ts
-│       ├── user.ts
 │       └── ...
 ├── tests/                 # Pruebas unitarias
 │   ├── static-files.test.ts
@@ -150,17 +148,9 @@ const authMiddleware = (req, next) => {
   return next();
 };
 
-const loggerMiddleware = async (req, next) => {
-  const start = Date.now();
-  const response = await next();
-  console.log(`Request took ${Date.now() - start}ms`);
-  return response;
-};
-
 router.route(
   { pathname: "/admin", method: "GET" },
   authMiddleware,
-  loggerMiddleware,
   () => new Response("Admin Panel")
 );
 
@@ -231,8 +221,6 @@ new Router(config?: RouterConfig)
 
 - **`serve()`**: Inicia el servidor HTTP.
 
-- **`currentRoute(req)`**: Encuentra una ruta que coincida con la petición (uso interno).
-
 ### Tipos TypeScript
 
 ```typescript
@@ -268,14 +256,6 @@ El router incluye un sistema de logging avanzado con las siguientes característ
 - **Medición de performance**: Tiempo de respuesta en milisegundos
 - **Configurable**: Puede deshabilitarse pasando `logRequests: false`
 
-**Ejemplo de salida:**
-```
-[2025-10-18T21:30:27.332Z] POST    / 200 1.35ms
-[2025-10-18T21:30:37.307Z] POST    /user/add/ 200 13.63ms
-[2025-10-18T21:30:42.841Z] GET     / 200 0.40ms
-[2025-10-18T21:30:45.176Z] GET     /test/ 200 0.44ms
-```
-
 ## 🚦 Permisos de Deno
 
 El proyecto utiliza los siguientes permisos, definidos en `deno.json`:
@@ -295,7 +275,7 @@ deno task test
 ```
 
 **Resultados esperados:**
-```
+```plaintext
 ✅ 4 passed (15 steps) | 0 failed
 ```
 
