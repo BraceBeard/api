@@ -11,6 +11,6 @@ export const jwtKey = await crypto.subtle.importKey(
   "raw",
   new TextEncoder().encode(JWT_SECRET_KEY),
   { name: "HMAC", hash: "SHA-256" },
-  true,
+  false,
   ["sign", "verify"],
 );
