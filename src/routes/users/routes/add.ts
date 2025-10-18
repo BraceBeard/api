@@ -1,7 +1,18 @@
 import { ulid } from "@std/ulid/ulid";
+import { create } from "djwt";
 import { User } from "../models/user.model.ts";
 import { kv, router } from "../../../../core/shared/index.ts";
 import { Keys } from "../data/user.data.ts";
+
+// IMPORTANT: Store this securely in an environment variable
+const JWT_SECRET_KEY = "your-super-secret-key";
+const key = await crypto.subtle.importKey(
+  "raw",
+  new TextEncoder().encode(JWT_SECRET_KEY),
+  { name: "HMAC", hash: "SHA-256" },
+  true,
+  ["sign", "verify"],
+);
 
 /**
  * Agrega un usuario a la base de datos.
@@ -17,7 +28,7 @@ export async function UserAddRouteHandler(req: Request): Promise<Response> {
 
     // Check that values are strings (not File objects or null)
     if (typeof nameValue !== "string" || typeof emailValue !== "string") {
-      return new Response("Nombre y correo electrónico deben ser texto", { status: 400 });
+      return new Response(JSON.stringify({ error: "Nombre y correo electrónico deben ser texto" }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
     // Trim and validate non-empty
@@ -25,21 +36,13 @@ export async function UserAddRouteHandler(req: Request): Promise<Response> {
     const email = emailValue.trim();
 
     if (!name || !email) {
-      return new Response("Nombre y correo electrónico son obligatorios", { status: 400 });
+      return new Response(JSON.stringify({ error: "Nombre y correo electrónico son obligatorios" }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return new Response("Formato de correo electrónico inválido", { status: 400 });
-    }
-
-    // Check email uniqueness
-    for await (const entry of kv.list({ prefix: [Keys.USERS] })) {
-      const user = entry.value as User;
-      if (user.email === email) {
-        return new Response("El correo electrónico ya está registrado", { status: 409 });
-      }
+      return new Response(JSON.stringify({ error: "Formato de correo electrónico inválido" }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
     const data: User = {
@@ -49,15 +52,35 @@ export async function UserAddRouteHandler(req: Request): Promise<Response> {
         role: "user",
     };
 
-    await kv.set([Keys.USERS, id], data);
+    const res = await kv.atomic()
+      // Check if the email is already in use
+      .check({ key: [Keys.USERS_BY_EMAIL, email], versionstamp: null })
+      // Create the user and the email index entry
+      .set([Keys.USERS, id], data)
+      .set([Keys.USERS_BY_EMAIL, email], id)
+      .commit();
 
-    return new Response(JSON.stringify({ id }), {
+    if (!res.ok) {
+      return new Response(JSON.stringify({ error: "El correo electrónico ya está registrado" }), {
+        status: 409,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Generate JWT for the new user
+    const jwt = await create(
+      { alg: "HS256", typ: "JWT" },
+      { userId: id, exp: Date.now() + 3600000 }, // Expires in 1 hour
+      key,
+    );
+
+    return new Response(JSON.stringify({ id, token: jwt }), {
       status: 201,
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error(e);
-    return new Response("Error al agregar el usuario", { status: 500 });
+    return new Response(JSON.stringify({ error: "Error al agregar el usuario" }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
 
