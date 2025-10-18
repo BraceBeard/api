@@ -1,4 +1,4 @@
-import { router } from "./shared/index.ts";
+import { router } from "../core/shared/index.ts";
 
 import "./routes/index.ts";
 import "./routes/test.ts";

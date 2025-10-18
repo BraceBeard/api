@@ -1,5 +1,5 @@
 {
 	"tasks": {
-		"dev": "deno run --env-file -E -N --watch src/main.ts"
+		"dev": "deno run --unstable-kv --env-file -E -N -R -W --watch src/main.ts"
 	}
 }

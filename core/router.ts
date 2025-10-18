@@ -1,7 +1,10 @@
+import { removeTrailingSlash } from "./shared/utils.ts";
+
 export class Router {
 	private _req: Request | undefined;
 	private routes: { pathname: string; method: string; callback: (req: Request, params: Record<string, string | undefined>) => Response | Promise<Response> }[] =
 		[];
+	private lastRoute: { pathname: string; method: string; callback: (req: Request, params: Record<string, string | undefined>) => Response | Promise<Response> } | undefined;
 
 	setRequest(request: Request) {
 		if (!request) {
@@ -20,9 +23,10 @@ export class Router {
 		} else {
 			this.routes.push({
 				pathname: data.pathname,
-				method: data.method,
+				method: (data.method || "GET").toUpperCase(),
 				callback: (req, params) => callback(req, params),
 			});
+			this.lastRoute = this.routes[this.routes.length - 1];
 		}
 	}
 
@@ -34,7 +38,7 @@ export class Router {
 				const path = new URLPattern({ pathname: route.pathname });
 				const params = path.exec(_req.url)?.pathname.groups || {};
 
-				if (path.exec(_req.url) && _req.method === route.method) {
+				if (path.exec(removeTrailingSlash(_req.url)) && _req.method === route.method) {
 					return await route.callback(_req, params);
 				}
 			}
