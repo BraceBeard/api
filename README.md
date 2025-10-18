@@ -70,7 +70,7 @@ Esto iniciará el servidor en `http://0.0.0.0:4242` con hot reload habilitado.
 ### Modo Producción
 
 ```bash
-deno run --allow-net --allow-read --allow-env --env-file src/main.ts
+deno run --allow-net --allow-read --allow-env --env-file=.env src/main.ts
 ```
 
 ## 📁 Estructura del Proyecto
@@ -276,7 +276,7 @@ El proyecto utiliza los siguientes permisos, definidos en `deno.json`:
 - `--allow-net`: Acceso a la red para el servidor HTTP.
 - `--allow-read`: Permiso de lectura para servir archivos estáticos.
 - `--allow-env`: Acceso a variables de entorno.
-- `--env-file`: Carga de variables desde archivo `.env`.
+- `--env-file=.env`: Carga de variables desde archivo `.env`.
 - `--watch`: Recarga automática en modo desarrollo.
 
 ## ✅ Testing
