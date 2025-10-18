@@ -12,7 +12,7 @@ export async function UserRouteHandler(
   try {
     const id = params.id;
     if (!id) {
-      return new Response("ID de usuario faltante", { status: 400 });
+      return new Response(JSON.stringify({ error: "ID de usuario faltante" }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
     if (Deno.env.get("ENABLE_ADMIN_ROLE") === "true") {
@@ -39,7 +39,7 @@ export async function UserRouteHandler(
 
     const user = await kv.get([Keys.USERS, id]);
     if (!user || user.value == null) {
-      return new Response("Usuario no encontrado", { status: 404 });
+      return new Response(JSON.stringify({ error: "Usuario no encontrado" }), { status: 404, headers: { "Content-Type": "application/json" } });
     }
 
     return new Response(JSON.stringify(user.value), {
@@ -47,7 +47,7 @@ export async function UserRouteHandler(
     });
   } catch (e) {
     console.error(e);
-    return new Response("Error al obtener el usuario", { status: 500 });
+    return new Response(JSON.stringify({ error: "Error al obtener el usuario" }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
 

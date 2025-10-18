@@ -18,13 +18,13 @@ export async function UserAddRouteHandler(req: AuthenticatedRequest): Promise<Re
           status: 401,
           headers: { "Content-Type": "application/json" },
         });
-    }
-    if (authenticatedUser.role !== "admin") {
-      return new Response(JSON.stringify({ error: "No tienes permiso para realizar esta acción" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+      }
+      if (authenticatedUser.role !== "admin") {
+        return new Response(JSON.stringify({ error: "No tienes permiso para realizar esta acción" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
     }
     const formData = await req.formData();
     const id = ulid();

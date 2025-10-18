@@ -21,26 +21,24 @@ export async function UserDeleteRouteHandler(
       );
     }
 
-    if (Deno.env.get("ENABLE_ADMIN_ROLE") === "true") {
-      const authenticatedUser = req.user;
-      if (!authenticatedUser) {
-        return new Response(JSON.stringify({ error: "No autorizado" }), {
-          status: 401,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
+    const authenticatedUser = req.user;
+    if (!authenticatedUser) {
+      return new Response(JSON.stringify({ error: "No autorizado" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
-      if (authenticatedUser.role !== "admin" && authenticatedUser.id !== id) {
-        return new Response(
-          JSON.stringify({
-            error: "No tienes permiso para realizar esta acción",
-          }),
-          {
-            status: 403,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-      }
+    if (authenticatedUser.role !== "admin" && authenticatedUser.id !== id) {
+      return new Response(
+        JSON.stringify({
+          error: "No tienes permiso para realizar esta acción",
+        }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     }
 
     const user = await kv.get([Keys.USERS, id]);

@@ -32,24 +32,24 @@ export async function UsersRouteHandler(
       }
     }
 
+    const url = new URL(req.url);
+    const limit = parseInt(url.searchParams.get("limit") || "10");
+    const cursor = url.searchParams.get("cursor") || undefined;
+
     const list: User[] = [];
-    const users = kv.list({ prefix: [Keys.USERS] });
+    const users = kv.list({ prefix: [Keys.USERS] }, { limit, cursor });
 
-    let count = 0;
     for await (const entry of users) {
-      count++;
-
       const user = entry.value as User;
-
       list.push(user);
     }
 
-    return new Response(JSON.stringify(list), {
+    return new Response(JSON.stringify({ users: list, cursor: users.cursor }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error(e);
-    return new Response("Error al obtener los usuarios", { status: 500 });
+    return new Response(JSON.stringify({ error: "Error al obtener los usuarios" }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
 
