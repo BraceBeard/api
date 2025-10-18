@@ -1,15 +1,24 @@
 import { removeTrailingSlash } from "./shared/utils.ts";
 
+interface Route {
+  pathname: string;
+  pattern: URLPattern;
+  callback: (
+    req: Request,
+    params: Record<string, string | undefined>,
+  ) => Response | Promise<Response>;
+}
+
+type Middleware = (
+  req: Request,
+  next: () => Response | Promise<Response>
+) => Response | Promise<Response>;
+
 export class Router {
-  private routes: {
-    pathname: string;
-    method: string;
-    pattern: URLPattern;
-    callback: (
-      req: Request,
-      params: Record<string, string | undefined>,
-    ) => Response | Promise<Response>;
-  }[] = [];
+  private routesByMethod = new Map<string, Route[]>();
+  private patternCache = new Map<string, URLPattern>();
+  private globalMiddlewares: Middleware[] = [];
+  private routeMiddlewares = new Map<string, Middleware[]>();
 
   route(
     data: string | {
@@ -29,38 +38,84 @@ export class Router {
       method = (data.method || "GET").toUpperCase();
       pathname = data.pathname;
     }
-    this.routes.push({
-      method,
+    if (!this.routesByMethod.has(method)) {
+      this.routesByMethod.set(method, []);
+    }
+    
+    const pattern = this.getPattern(pathname);
+    this.routesByMethod.get(method)!.push({
       pathname,
-      pattern: new URLPattern({ pathname }),
-      callback: (req, params) => callback(req, params),
+      pattern,
+      callback,
     });
   }
 
-  currentRoute(req: Request) {
-    const pathname = removeTrailingSlash(new URL(req.url).pathname);
-    const routes = this.routes.filter((route) => route.method === req.method);
+  private getPattern(pathname: string): URLPattern {
+    if (!this.patternCache.has(pathname)) {
+      this.patternCache.set(pathname, new URLPattern({ pathname }));
+    }
+    return this.patternCache.get(pathname)!;
+  }
 
-    for (const route of routes) {
-      const match = route.pattern.exec({ pathname });
-      if (match) {
-        return { route, params: match.pathname.groups };
+  currentRoute(req: Request) {
+    try {
+      const pathname = removeTrailingSlash(new URL(req.url).pathname);
+      const routes = this.routesByMethod.get(req.method) || [];
+
+      for (const route of routes) {
+        const match = route.pattern.exec({ pathname });
+        if (match) {
+          return { route, params: match.pathname.groups };
+        }
       }
+    } catch (error) {
+      console.error('Error parsing URL:', error);
     }
 
     return null;
   }
 
+  use(middleware: Middleware) {
+    this.globalMiddlewares.push(middleware);
+  }
+
+  private async executeMiddlewares(
+    req: Request,
+    middlewares: Middleware[],
+    finalHandler: () => Response | Promise<Response>
+  ): Promise<Response> {
+    let index = 0;
+    
+    const next = async (): Promise<Response> => {
+      if (index < middlewares.length) {
+        const middleware = middlewares[index++];
+        return await middleware(req, next);
+      }
+      return await finalHandler();
+    };
+    
+    return await next();
+  }
+
   serve() {
     Deno.serve({ port: 4242, hostname: "0.0.0.0" }, async (_req: Request) => {
-      const routeResult = this.currentRoute(_req);
-      if (routeResult) {
-        return await routeResult.route.callback(_req, routeResult.params);
-      }
+      try {
+        const routeResult = this.currentRoute(_req);
+        
+        if (routeResult) {
+          const finalHandler = () => routeResult.route.callback(_req, routeResult.params);
+          return await this.executeMiddlewares(_req, this.globalMiddlewares, finalHandler);
+        }
 
-      return new Response("Not found", {
-        status: 404,
-      });
+        return new Response("Not found", {
+          status: 404,
+        });
+      } catch (error) {
+        console.error('Server error:', error);
+        return new Response("Internal Server Error", {
+          status: 500,
+        });
+      }
     });
   }
 }
