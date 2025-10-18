@@ -20,6 +20,11 @@ async function createFirstUser() {
       .set([Keys.USERS_BY_EMAIL, data.email], id)
       .commit();
 
+    if (!res.ok) {
+      console.error("Failed to create first user. User may already exist:", res);
+      return;
+    }
+
     // Generate JWT for the new user
     const jwt = await create(
       { alg: "HS256", typ: "JWT" },
@@ -28,10 +33,6 @@ async function createFirstUser() {
     );
 
     console.log("Token:", jwt);
-    if (!res.ok) {
-      console.error("Error al crear el primer usuario:", res);
-      return;
-    }
   } catch (error) {
     console.error("Error al crear el primer usuario:", error);
   }
