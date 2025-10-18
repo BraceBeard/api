@@ -114,13 +114,18 @@ export class Router {
   serve() {
     Deno.serve({ port: 4242, hostname: "0.0.0.0" }, async (_req: Request) => {
       try {
+        const url = new URL(_req.url);
+        const requestPath = removeTrailingSlash(url.pathname);
+
         for (const [urlPath, fsRoot] of this.staticRoutes.entries()) {
-          const url = new URL(_req.url);
-          if (url.pathname.startsWith(urlPath)) {
+          const staticPath = removeTrailingSlash(urlPath);
+
+          if (requestPath === staticPath || requestPath.startsWith(staticPath + '/')) {
             const response = await serveDir(_req, {
               fsRoot,
               urlRoot: urlPath,
             });
+
             if (response.status !== 404) {
               return response;
             }
