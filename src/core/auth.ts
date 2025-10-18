@@ -29,8 +29,6 @@ export async function authMiddleware(
     });
   }
 
-  console.log("Token:", token);
-
   try {
     const payload = await verify(token, jwtKey);
     const userId = payload.userId as string;

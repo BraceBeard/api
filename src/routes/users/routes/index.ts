@@ -11,7 +11,6 @@ export async function UsersRouteHandler(
 ): Promise<Response> {
   try {
     const authenticatedUser = req.user;
-    console.log(authenticatedUser);
     if (!authenticatedUser) {
       return new Response(JSON.stringify({ error: "No autorizado" }), {
         status: 401,
@@ -34,11 +33,6 @@ export async function UsersRouteHandler(
       count++;
 
       const user = entry.value as User;
-      console.log(`📄 Found entry ${count}:`, {
-        key: entry.key,
-        value: entry.value,
-        versionstamp: entry.versionstamp,
-      });
 
       list.push(user);
     }
