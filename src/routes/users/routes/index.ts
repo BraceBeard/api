@@ -10,23 +10,30 @@ export async function UsersRouteHandler(
   req: AuthenticatedRequest,
 ): Promise<Response> {
   try {
-    const authenticatedUser = req.user;
-    if (!authenticatedUser) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    if (Deno.env.get("ENABLE_ADMIN_ROLE") === "true") {
+      const authenticatedUser = req.user;
+      if (!authenticatedUser) {
+        return new Response(JSON.stringify({ error: "No autorizado" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
 
-    if (authenticatedUser.role !== "admin") {
-      return new Response(JSON.stringify({ error: "No tienes permiso para realizar esta acción" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
+      if (authenticatedUser.role !== "admin") {
+        return new Response(
+          JSON.stringify({
+            error: "No tienes permiso para realizar esta acción",
+          }),
+          {
+            status: 403,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
     }
 
     const list: User[] = [];
-    const users = kv.list({ prefix: [Keys.USERS]});
+    const users = kv.list({ prefix: [Keys.USERS] });
 
     let count = 0;
     for await (const entry of users) {

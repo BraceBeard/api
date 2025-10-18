@@ -1,5 +1,5 @@
 import { kv, router } from "../../../../core/shared/index.ts";
-import { authMiddleware, AuthenticatedRequest } from "../../../core/auth.ts";
+import { AuthenticatedRequest, authMiddleware } from "../../../core/auth.ts";
 import { Keys } from "../data/user.data.ts";
 
 /**
@@ -10,25 +10,31 @@ export async function UserRouteHandler(
   params: Record<string, string | undefined>,
 ): Promise<Response> {
   try {
-    const authenticatedUser = req.user;
-    console.log(authenticatedUser);
-    if (!authenticatedUser) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
     const id = params.id;
     if (!id) {
       return new Response("ID de usuario faltante", { status: 400 });
     }
 
-    if (authenticatedUser.role !== "admin" && authenticatedUser.id !== id) {
-      return new Response(JSON.stringify({ error: "No tienes permiso para realizar esta acción" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
+    if (Deno.env.get("ENABLE_ADMIN_ROLE") === "true") {
+      const authenticatedUser = req.user;
+      if (!authenticatedUser) {
+        return new Response(JSON.stringify({ error: "No autorizado" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      if (authenticatedUser.role !== "admin" && authenticatedUser.id !== id) {
+        return new Response(
+          JSON.stringify({
+            error: "No tienes permiso para realizar esta acción",
+          }),
+          {
+            status: 403,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
     }
 
     const user = await kv.get([Keys.USERS, id]);

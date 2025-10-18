@@ -1,6 +1,6 @@
 import { kv, router } from "../../../../core/shared/index.ts";
 import { Keys } from "../data/user.data.ts";
-import { authMiddleware, AuthenticatedRequest } from "../../../core/auth.ts";
+import { AuthenticatedRequest, authMiddleware } from "../../../core/auth.ts";
 
 /**
  * Elimina un usuario de la base de datos.
@@ -10,27 +10,37 @@ export async function UserDeleteRouteHandler(
   params: Record<string, string | undefined>,
 ): Promise<Response> {
   try {
-    const authenticatedUser = req.user;
-    if (!authenticatedUser) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
     const id = params.id;
     if (!id) {
-      return new Response(JSON.stringify({ error: "Parametro 'id' faltante" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Parametro 'id' faltante" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     }
 
-    if (authenticatedUser.role !== "admin" && authenticatedUser.id !== id) {
-      return new Response(JSON.stringify({ error: "No tienes permiso para realizar esta acción" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
+    if (Deno.env.get("ENABLE_ADMIN_ROLE") === "true") {
+      const authenticatedUser = req.user;
+      if (!authenticatedUser) {
+        return new Response(JSON.stringify({ error: "No autorizado" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      if (authenticatedUser.role !== "admin" && authenticatedUser.id !== id) {
+        return new Response(
+          JSON.stringify({
+            error: "No tienes permiso para realizar esta acción",
+          }),
+          {
+            status: 403,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
     }
 
     const user = await kv.get([Keys.USERS, id]);
@@ -43,21 +53,31 @@ export async function UserDeleteRouteHandler(
 
     await kv.delete([Keys.USERS, id]);
 
-    return new Response(JSON.stringify({
+    return new Response(
+      JSON.stringify({
         message: "Usuario eliminado correctamente",
-    }), {
-      headers: { "Content-Type": "application/json" },
-    });
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   } catch (e) {
     console.error(e);
-    return new Response(JSON.stringify({ error: "Error al eliminar el usuario" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "Error al eliminar el usuario" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 }
 
-router.route({
+router.route(
+  {
     pathname: "/users/:id",
     method: "DELETE",
-}, authMiddleware, UserDeleteRouteHandler);
+  },
+  authMiddleware,
+  UserDeleteRouteHandler,
+);
