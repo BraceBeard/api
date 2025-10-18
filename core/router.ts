@@ -1,9 +1,14 @@
 import { removeTrailingSlash } from "./shared/utils.ts";
-import { serveDir } from "@std/http";
 
+// Types
 type RouteHandler = (
   req: Request,
   params: Record<string, string | undefined>,
+) => Response | Promise<Response>;
+
+type Middleware = (
+  req: Request,
+  next: () => Response | Promise<Response>,
 ) => Response | Promise<Response>;
 
 interface Route {
@@ -13,40 +18,72 @@ interface Route {
   middlewares: Middleware[];
 }
 
-type Middleware = (
-  req: Request,
-  next: () => Response | Promise<Response>
-) => Response | Promise<Response>;
+interface RouterConfig {
+  port?: number;
+  hostname?: string;
+  logRequests?: boolean;
+}
 
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS";
+
+// Router class
 export class Router {
   private routesByMethod = new Map<string, Route[]>();
   private patternCache = new Map<string, URLPattern>();
   private globalMiddlewares: Middleware[] = [];
-  private staticRoutes = new Map<string, string>();
+  private config: Required<RouterConfig>;
 
+  constructor(config: RouterConfig = {}) {
+    this.config = {
+      port: config.port ?? 4242,
+      hostname: config.hostname ?? "0.0.0.0",
+      logRequests: config.logRequests ?? true,
+    };
+  }
+
+  /**
+   * Registers a new route with optional middlewares
+   * @param data - Route pathname or config object with method
+   * @param handlers - One or more middlewares followed by the final handler
+   */
   route(
-    data: string | {
-      pathname: string;
-      method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | string;
-    },
+    data: string | { pathname: string; method: HttpMethod | string },
     ...handlers: [...Middleware[], RouteHandler]
   ) {
-    let method = "GET";
-    let pathname = "";
+    // Validate that at least one handler is provided
+    if (handlers.length === 0) {
+      throw new Error("At least one handler must be provided");
+    }
+
+    // Parse method and pathname
+    let method: string = "GET";
+    let pathname: string;
+
     if (typeof data === "string") {
       pathname = data;
     } else {
       method = (data.method || "GET").toUpperCase();
       pathname = data.pathname;
     }
+
+    // Validate pathname
+    if (!pathname || pathname.trim() === "") {
+      throw new Error("Pathname cannot be empty");
+    }
+
+    // Initialize method map if needed
     if (!this.routesByMethod.has(method)) {
       this.routesByMethod.set(method, []);
     }
-    
+
+    // Separate middlewares from final handler
     const middlewares = handlers.slice(0, -1) as Middleware[];
     const callback = handlers[handlers.length - 1] as RouteHandler;
 
+    // Get or create URL pattern
     const pattern = this.getPattern(pathname);
+
+    // Add route to registry
     this.routesByMethod.get(method)!.push({
       pathname,
       pattern,
@@ -55,13 +92,16 @@ export class Router {
     });
   }
 
-  private getPattern(pathname: string): URLPattern {
-    if (!this.patternCache.has(pathname)) {
-      this.patternCache.set(pathname, new URLPattern({ pathname }));
-    }
-    return this.patternCache.get(pathname)!;
+  /**
+   * Adds a global middleware that runs for all routes
+   */
+  use(middleware: Middleware) {
+    this.globalMiddlewares.push(middleware);
   }
 
+  /**
+   * Finds a matching route for the given request
+   */
   currentRoute(req: Request) {
     try {
       const pathname = removeTrailingSlash(new URL(req.url).pathname);
@@ -74,31 +114,103 @@ export class Router {
         }
       }
     } catch (error) {
-      console.error(`Error matching route for ${req.method} ${req.url}:`, error);
+      console.error(
+        `Error matching route for ${req.method} ${req.url}:`,
+        error,
+      );
     }
 
     return null;
   }
 
-  static(urlPath: string, fsRoot: string) {
-    this.staticRoutes.set(urlPath, fsRoot);
+  /**
+   * Main request handler
+   */
+  handler = async (req: Request): Promise<Response> => {
+    const startTime = performance.now();
+
+    try {
+      const routeResult = this.currentRoute(req);
+
+      if (routeResult) {
+        const routeMiddlewares = routeResult.route.middlewares || [];
+        const allMiddlewares = [
+          ...this.globalMiddlewares,
+          ...routeMiddlewares,
+        ];
+        const finalHandler = () =>
+          routeResult.route.callback(req, routeResult.params);
+
+        const response = await this.executeMiddlewares(
+          req,
+          allMiddlewares,
+          finalHandler,
+        );
+
+        // Log request if enabled
+        if (this.config.logRequests) {
+          this.logRequest(req, response, performance.now() - startTime);
+        }
+
+        return response;
+      }
+
+      // 404 - Route not found
+      const notFoundResponse = new Response("Not found", { status: 404 });
+      
+      if (this.config.logRequests) {
+        this.logRequest(req, notFoundResponse, performance.now() - startTime);
+      }
+
+      return notFoundResponse;
+    } catch (error) {
+      console.error("Server error:", error);
+      
+      const errorResponse = new Response("Internal Server Error", {
+        status: 500,
+      });
+
+      if (this.config.logRequests) {
+        this.logRequest(req, errorResponse, performance.now() - startTime);
+      }
+
+      return errorResponse;
+    }
+  };
+
+  /**
+   * Starts the HTTP server
+   */
+  serve() {
+    console.log(
+      `🚀 Server listening on http://${this.config.hostname}:${this.config.port}`,
+    );
+    Deno.serve(
+      { port: this.config.port, hostname: this.config.hostname },
+      this.handler,
+    );
   }
 
-  use(middleware: Middleware) {
-    this.globalMiddlewares.push(middleware);
+  // Private methods
+
+  private getPattern(pathname: string): URLPattern {
+    if (!this.patternCache.has(pathname)) {
+      this.patternCache.set(pathname, new URLPattern({ pathname }));
+    }
+    return this.patternCache.get(pathname)!;
   }
 
   private async executeMiddlewares(
     req: Request,
     middlewares: Middleware[],
-    finalHandler: () => Response | Promise<Response>
+    finalHandler: () => Response | Promise<Response>,
   ): Promise<Response> {
     if (middlewares.length === 0) {
       return await finalHandler();
     }
 
     let index = 0;
-    
+
     const next = async (): Promise<Response> => {
       if (index < middlewares.length) {
         const middleware = middlewares[index++];
@@ -106,51 +218,34 @@ export class Router {
       }
       return await finalHandler();
     };
-    
+
     return await next();
   }
 
+  private logRequest(req: Request, res: Response, duration: number) {
+    const url = new URL(req.url);
+    const timestamp = new Date().toISOString();
+    const method = req.method.padEnd(7);
+    const status = res.status;
+    const path = url.pathname;
+    const durationMs = duration.toFixed(2);
 
-  serve() {
-    Deno.serve({ port: 4242, hostname: "0.0.0.0" }, async (_req: Request) => {
-      try {
-        const url = new URL(_req.url);
-        const requestPath = removeTrailingSlash(url.pathname);
+    // Color codes for different status ranges
+    const statusColor = status >= 500
+      ? "\x1b[31m" // Red for 5xx
+      : status >= 400
+      ? "\x1b[33m" // Yellow for 4xx
+      : status >= 300
+      ? "\x1b[36m" // Cyan for 3xx
+      : "\x1b[32m"; // Green for 2xx
 
-        for (const [urlPath, fsRoot] of this.staticRoutes.entries()) {
-          const staticPath = removeTrailingSlash(urlPath);
+    const reset = "\x1b[0m";
 
-          if (staticPath === '/' || requestPath === staticPath || requestPath.startsWith(staticPath + '/')) {
-            const response = await serveDir(_req, {
-              fsRoot,
-              urlRoot: urlPath,
-            });
-
-            if (response.status !== 404) {
-              return response;
-            }
-          }
-        }
-
-        const routeResult = this.currentRoute(_req);
-        
-        if (routeResult) {
-          const routeMiddlewares = routeResult.route.middlewares || [];
-          const allMiddlewares = [...this.globalMiddlewares, ...routeMiddlewares];
-          const finalHandler = () => routeResult.route.callback(_req, routeResult.params);
-
-          return await this.executeMiddlewares(_req, allMiddlewares, finalHandler);
-        }
-
-        return new Response("Not found", {
-          status: 404,
-        });
-      } catch (error) {
-        console.error('Server error:', error);
-        return new Response("Internal Server Error", {
-          status: 500,
-        });
-      }
-    });
+    console.log(
+      `[${timestamp}] ${method} ${path} ${statusColor}${status}${reset} ${durationMs}ms`,
+    );
   }
 }
+
+// Export types for external use
+export type { RouteHandler, Middleware, RouterConfig, HttpMethod };
