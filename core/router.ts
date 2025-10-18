@@ -4,6 +4,7 @@ export class Router {
   private routes: {
     pathname: string;
     method: string;
+    pattern: URLPattern;
     callback: (
       req: Request,
       params: Record<string, string | undefined>,
@@ -31,6 +32,7 @@ export class Router {
     this.routes.push({
       method,
       pathname,
+      pattern: new URLPattern({ pathname }),
       callback: (req, params) => callback(req, params),
     });
   }
@@ -39,8 +41,7 @@ export class Router {
     const pathname = removeTrailingSlash(new URL(url).pathname);
 
     for (const route of this.routes) {
-      const pattern = new URLPattern({ pathname: route.pathname });
-      const match = pattern.exec({ pathname });
+      const match = route.pattern.exec({ pathname });
       if (match) {
         return { route, params: match.pathname.groups };
       }
