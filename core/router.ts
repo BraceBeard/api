@@ -1,7 +1,6 @@
 import { removeTrailingSlash } from "./shared/utils.ts";
 
 export class Router {
-  private _req: Request | undefined;
   private routes: {
     pathname: string;
     method: string;
@@ -10,14 +9,6 @@ export class Router {
       params: Record<string, string | undefined>,
     ) => Response | Promise<Response>;
   }[] = [];
-
-  setRequest(request: Request) {
-    if (!request) {
-      throw new Error("Request is not defined");
-    }
-
-    this._req = request;
-  }
 
   route(
     data: string | {
@@ -29,40 +20,43 @@ export class Router {
       params: Record<string, string | undefined>,
     ) => Response | Promise<Response>,
   ) {
-	let method = "GET";
-	let pathname = "";
+    let method = "GET";
+    let pathname = "";
     if (typeof data === "string") {
-		method = "GET";
-		pathname = data;
+      pathname = data;
     } else {
-		method = (data.method || "GET").toUpperCase();
-		pathname = data.pathname;
+      method = (data.method || "GET").toUpperCase();
+      pathname = data.pathname;
     }
-      this.routes.push({
-        method,
-        pathname,
-        callback: (req, params) => callback(req, params),
-      });
+    this.routes.push({
+      method,
+      pathname,
+      callback: (req, params) => callback(req, params),
+    });
   }
 
   currentRoute(url: string) {
-    return this.routes.find((route) =>
-      new URLPattern({ pathname: route.pathname }).exec(
-        removeTrailingSlash(url),
-      )
-    );
+    const pathname = removeTrailingSlash(new URL(url).pathname);
+
+    for (const route of this.routes) {
+      const pattern = new URLPattern({ pathname: route.pathname });
+      const match = pattern.exec({ pathname });
+      if (match) {
+        return { route, params: match.pathname.groups };
+      }
+    }
+
+    return null;
   }
 
   serve() {
     Deno.serve({ port: 4242, hostname: "0.0.0.0" }, async (_req: Request) => {
-      this.setRequest(_req);
-
-      const route = this.currentRoute(_req.url);
+      const routeResult = this.currentRoute(_req.url);
       if (
-        route &&
-        _req.method === route.method
+        routeResult &&
+        _req.method === routeResult.route.method
       ) {
-        return await route.callback(_req, {});
+        return await routeResult.route.callback(_req, routeResult.params);
       }
 
       return new Response("Not found", {
