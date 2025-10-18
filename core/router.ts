@@ -1,51 +1,68 @@
 import { removeTrailingSlash } from "./shared/utils.ts";
 
 export class Router {
-	private _req: Request | undefined;
-	private routes: { pathname: string; method: string; callback: (req: Request, params: Record<string, string | undefined>) => Response | Promise<Response> }[] =
-		[];
-	private lastRoute: { pathname: string; method: string; callback: (req: Request, params: Record<string, string | undefined>) => Response | Promise<Response> } | undefined;
+  private routes: {
+    pathname: string;
+    method: string;
+    pattern: URLPattern;
+    callback: (
+      req: Request,
+      params: Record<string, string | undefined>,
+    ) => Response | Promise<Response>;
+  }[] = [];
 
-	setRequest(request: Request) {
-		if (!request) {
-			throw new Error("Request is not defined");
-		}
+  route(
+    data: string | {
+      pathname: string;
+      method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | string;
+    },
+    callback: (
+      req: Request,
+      params: Record<string, string | undefined>,
+    ) => Response | Promise<Response>,
+  ) {
+    let method = "GET";
+    let pathname = "";
+    if (typeof data === "string") {
+      pathname = data;
+    } else {
+      method = (data.method || "GET").toUpperCase();
+      pathname = data.pathname;
+    }
+    this.routes.push({
+      method,
+      pathname,
+      pattern: new URLPattern({ pathname }),
+      callback: (req, params) => callback(req, params),
+    });
+  }
 
-		this._req = request;
-	}
+  currentRoute(url: string) {
+    const pathname = removeTrailingSlash(new URL(url).pathname);
 
-	route(data: string | {
-		pathname: string;
-		method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | string;
-	}, callback: (req: Request, params: Record<string, string | undefined>) => Response | Promise<Response>) {
-		if (typeof data === "string") {
-			this.routes.push({ pathname: data, method: "GET", callback: (req, params) => callback(req, params) });
-		} else {
-			this.routes.push({
-				pathname: data.pathname,
-				method: (data.method || "GET").toUpperCase(),
-				callback: (req, params) => callback(req, params),
-			});
-			this.lastRoute = this.routes[this.routes.length - 1];
-		}
-	}
+    for (const route of this.routes) {
+      const match = route.pattern.exec({ pathname });
+      if (match) {
+        return { route, params: match.pathname.groups };
+      }
+    }
 
-	serve() {
-		Deno.serve({ port: 4242, hostname: "0.0.0.0" }, async (_req: Request) => {
-			this.setRequest(_req);
+    return null;
+  }
 
-			for (const route of this.routes) {
-				const path = new URLPattern({ pathname: route.pathname });
-				const params = path.exec(_req.url)?.pathname.groups || {};
+  serve() {
+    Deno.serve({ port: 4242, hostname: "0.0.0.0" }, async (_req: Request) => {
+      const routeResult = this.currentRoute(_req.url);
+      if (
+        routeResult &&
+        _req.method === routeResult.route.method
+      ) {
+        return await routeResult.route.callback(_req, routeResult.params);
+      }
 
-				if (path.exec(removeTrailingSlash(_req.url)) && _req.method === route.method) {
-					return await route.callback(_req, params);
-				}
-			}
-
-			return new Response("Not found", {
-				status: 404,
-			});
-		});
-	}
+      return new Response("Not found", {
+        status: 404,
+      });
+    });
+  }
 }
