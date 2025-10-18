@@ -36,6 +36,19 @@ cd api
 # No se requiere instalación de dependencias (Deno las maneja automáticamente)
 ```
 
+## 🔑 Environment Variables
+
+Before running the application, you need to set up your environment variables. Copy the example file and then populate it with your own secrets.
+
+```bash
+# Create your local environment file
+cp .env.example .env
+```
+
+Next, open the `.env` file and replace the placeholder values with your actual secrets. The application requires the following variables:
+
+- `JWT_SECRET_KEY`: A long, random, and secure string used for signing authentication tokens.
+
 ## 🏃 Ejecución
 
 ### Modo Desarrollo
