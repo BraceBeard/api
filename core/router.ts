@@ -37,10 +37,11 @@ export class Router {
     });
   }
 
-  currentRoute(url: string) {
-    const pathname = removeTrailingSlash(new URL(url).pathname);
+  currentRoute(req: Request) {
+    const pathname = removeTrailingSlash(new URL(req.url).pathname);
+    const routes = this.routes.filter((route) => route.method === req.method);
 
-    for (const route of this.routes) {
+    for (const route of routes) {
       const match = route.pattern.exec({ pathname });
       if (match) {
         return { route, params: match.pathname.groups };
@@ -52,11 +53,8 @@ export class Router {
 
   serve() {
     Deno.serve({ port: 4242, hostname: "0.0.0.0" }, async (_req: Request) => {
-      const routeResult = this.currentRoute(_req.url);
-      if (
-        routeResult &&
-        _req.method === routeResult.route.method
-      ) {
+      const routeResult = this.currentRoute(_req);
+      if (routeResult) {
         return await routeResult.route.callback(_req, routeResult.params);
       }
 
