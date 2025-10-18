@@ -1,4 +1,5 @@
 import { removeTrailingSlash } from "./shared/utils.ts";
+import { serveDir } from "@std/http";
 
 type RouteHandler = (
   req: Request,
@@ -21,6 +22,7 @@ export class Router {
   private routesByMethod = new Map<string, Route[]>();
   private patternCache = new Map<string, URLPattern>();
   private globalMiddlewares: Middleware[] = [];
+  private staticRoutes = new Map<string, string>();
 
   route(
     data: string | {
@@ -78,6 +80,10 @@ export class Router {
     return null;
   }
 
+  static(urlPath: string, fsRoot: string) {
+    this.staticRoutes.set(urlPath, fsRoot);
+  }
+
   use(middleware: Middleware) {
     this.globalMiddlewares.push(middleware);
   }
@@ -104,9 +110,23 @@ export class Router {
     return await next();
   }
 
+
   serve() {
     Deno.serve({ port: 4242, hostname: "0.0.0.0" }, async (_req: Request) => {
       try {
+        for (const [urlPath, fsRoot] of this.staticRoutes.entries()) {
+          const url = new URL(_req.url);
+          if (url.pathname.startsWith(urlPath)) {
+            const response = await serveDir(_req, {
+              fsRoot,
+              urlRoot: urlPath,
+            });
+            if (response.status !== 404) {
+              return response;
+            }
+          }
+        }
+
         const routeResult = this.currentRoute(_req);
         
         if (routeResult) {
