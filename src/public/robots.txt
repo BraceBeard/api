@@ -1,0 +1,4 @@
+# robots.txt for API server
+User-agent: *
+Allow: /assets/
+Disallow: /api/

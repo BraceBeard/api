@@ -5,3 +5,7 @@ export function homeRouteHandler(_req: Request): Response {
 }
 
 router.route("/", homeRouteHandler);
+router.route({
+	pathname: "/",
+	method: "POST",
+}, homeRouteHandler);

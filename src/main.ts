@@ -1,5 +1,9 @@
 import { router } from "../core/shared/index.ts";
 
+// Import static file routes first
+import "./routes/static.ts";
+
+// Import dynamic routes
 import "./routes/index.ts";
 import "./routes/users/routes/index.ts";
 import "./routes/users/routes/add.ts";
