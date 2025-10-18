@@ -1,8 +1,7 @@
 import { ulid } from "@std/ulid/ulid";
 import { User } from "../models/user.model.ts";
-import { kv } from "../../../shared/index.ts";
+import { kv, router } from "../../../../core/shared/index.ts";
 import { Keys } from "../data/user.data.ts";
-import { router } from "../../../shared/index.ts";
 
 /**
  * Agrega un usuario a la base de datos.

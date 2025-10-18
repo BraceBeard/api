@@ -1,7 +1,6 @@
 import { User } from "../models/user.model.ts";
-import { kv } from "../../../shared/index.ts";
+import { kv, router } from "../../../../core/shared/index.ts";
 import { Keys } from "../data/user.data.ts";
-import { router } from "../../../shared/index.ts";
 
 /**
  * Obtiene todos los usuarios de la base de datos.

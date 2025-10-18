@@ -1,4 +1,4 @@
-import { kv, router } from "../../../shared/index.ts";
+import { kv, router } from "../../../../core/shared/index.ts";
 import { Keys } from "../data/user.data.ts";
 
 /**

@@ -1,6 +1,5 @@
-import { router } from "../../../shared/index.ts";
+import { kv, router } from "../../../../core/shared/index.ts";
 import { Keys } from "../data/user.data.ts";
-import { kv } from "../../../shared/index.ts";
 
 /**
  * Elimina un usuario de la base de datos.
