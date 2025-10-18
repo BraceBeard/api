@@ -1,12 +1,14 @@
 import { removeTrailingSlash } from "./shared/utils.ts";
 
+type RouteHandler = (
+  req: Request,
+  params: Record<string, string | undefined>,
+) => Response | Promise<Response>;
+
 interface Route {
   pathname: string;
   pattern: URLPattern;
-  callback: (
-    req: Request,
-    params: Record<string, string | undefined>,
-  ) => Response | Promise<Response>;
+  callback: RouteHandler;
   middlewares: Middleware[];
 }
 
@@ -25,7 +27,7 @@ export class Router {
       pathname: string;
       method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | string;
     },
-    ...handlers: [...Middleware[], (req: Request, params: Record<string, string | undefined>) => Response | Promise<Response>]
+    ...handlers: [...Middleware[], RouteHandler]
   ) {
     let method = "GET";
     let pathname = "";
@@ -40,10 +42,7 @@ export class Router {
     }
     
     const middlewares = handlers.slice(0, -1) as Middleware[];
-    const callback = handlers[handlers.length - 1] as (
-      req: Request,
-      params: Record<string, string | undefined>,
-    ) => Response | Promise<Response>;
+    const callback = handlers[handlers.length - 1] as RouteHandler;
 
     const pattern = this.getPattern(pathname);
     this.routesByMethod.get(method)!.push({
