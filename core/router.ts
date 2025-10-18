@@ -120,7 +120,7 @@ export class Router {
         for (const [urlPath, fsRoot] of this.staticRoutes.entries()) {
           const staticPath = removeTrailingSlash(urlPath);
 
-          if (requestPath === staticPath || requestPath.startsWith(staticPath + '/')) {
+          if (staticPath === '/' || requestPath === staticPath || requestPath.startsWith(staticPath + '/')) {
             const response = await serveDir(_req, {
               fsRoot,
               urlRoot: urlPath,
