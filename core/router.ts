@@ -8,7 +8,7 @@ type RouteHandler = (
 
 type Middleware = (
   req: Request,
-  next: () => Response | Promise<Response>,
+  next: () => Promise<Response>,
 ) => Response | Promise<Response>;
 
 interface Route {

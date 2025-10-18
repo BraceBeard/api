@@ -34,10 +34,19 @@ export async function UserAddRouteHandler(req: Request): Promise<Response> {
       return new Response("Formato de correo electrónico inválido", { status: 400 });
     }
 
+    // Check email uniqueness
+    for await (const entry of kv.list({ prefix: [Keys.USERS] })) {
+      const user = entry.value as User;
+      if (user.email === email) {
+        return new Response("El correo electrónico ya está registrado", { status: 409 });
+      }
+    }
+
     const data: User = {
         id,
         name,
         email,
+        role: "user",
     };
 
     await kv.set([Keys.USERS, id], data);

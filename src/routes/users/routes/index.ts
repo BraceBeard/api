@@ -16,18 +16,14 @@ export async function UsersRouteHandler(
     for await (const entry of users) {
       count++;
 
-    const user = entry.value as User;
+      const user = entry.value as User;
       console.log(`📄 Found entry ${count}:`, {
         key: entry.key,
         value: entry.value,
         versionstamp: entry.versionstamp,
       });
 
-    list.push(user);
-    }
-
-    if (list.length === 0) {
-      return new Response("Usuarios no encontrados", { status: 404 });
+      list.push(user);
     }
 
     return new Response(JSON.stringify(list), {
