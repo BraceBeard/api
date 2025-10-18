@@ -23,7 +23,7 @@ export async function UserADDRouteHandler(
     language: "en-US",
   };
 
-  const result = await kv.set(["preferences", "ada"], prefs);
+  await kv.set(["preferences", "ada"], prefs);
 
   const entry = await kv.get(["preferences", "ada"]);
   console.log(entry.key);
