@@ -7,6 +7,7 @@ interface Route {
     req: Request,
     params: Record<string, string | undefined>,
   ) => Response | Promise<Response>;
+  middlewares: Middleware[];
 }
 
 type Middleware = (
@@ -18,17 +19,13 @@ export class Router {
   private routesByMethod = new Map<string, Route[]>();
   private patternCache = new Map<string, URLPattern>();
   private globalMiddlewares: Middleware[] = [];
-  private routeMiddlewares = new Map<string, Middleware[]>();
 
   route(
     data: string | {
       pathname: string;
       method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | string;
     },
-    callback: (
-      req: Request,
-      params: Record<string, string | undefined>,
-    ) => Response | Promise<Response>,
+    ...handlers: [...Middleware[], (req: Request, params: Record<string, string | undefined>) => Response | Promise<Response>]
   ) {
     let method = "GET";
     let pathname = "";
@@ -42,11 +39,18 @@ export class Router {
       this.routesByMethod.set(method, []);
     }
     
+    const middlewares = handlers.slice(0, -1) as Middleware[];
+    const callback = handlers[handlers.length - 1] as (
+      req: Request,
+      params: Record<string, string | undefined>,
+    ) => Response | Promise<Response>;
+
     const pattern = this.getPattern(pathname);
     this.routesByMethod.get(method)!.push({
       pathname,
       pattern,
       callback,
+      middlewares,
     });
   }
 
@@ -69,7 +73,7 @@ export class Router {
         }
       }
     } catch (error) {
-      console.error('Error parsing URL:', error);
+      console.error(`Error matching route for ${req.method} ${req.url}:`, error);
     }
 
     return null;
@@ -84,6 +88,10 @@ export class Router {
     middlewares: Middleware[],
     finalHandler: () => Response | Promise<Response>
   ): Promise<Response> {
+    if (middlewares.length === 0) {
+      return await finalHandler();
+    }
+
     let index = 0;
     
     const next = async (): Promise<Response> => {
@@ -103,8 +111,11 @@ export class Router {
         const routeResult = this.currentRoute(_req);
         
         if (routeResult) {
+          const routeMiddlewares = routeResult.route.middlewares || [];
+          const allMiddlewares = [...this.globalMiddlewares, ...routeMiddlewares];
           const finalHandler = () => routeResult.route.callback(_req, routeResult.params);
-          return await this.executeMiddlewares(_req, this.globalMiddlewares, finalHandler);
+
+          return await this.executeMiddlewares(_req, allMiddlewares, finalHandler);
         }
 
         return new Response("Not found", {
