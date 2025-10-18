@@ -1,17 +1,8 @@
-import { verify } from "djwt";
+import { verify } from "@zaubrik/djwt";
 import { User } from "../routes/users/models/user.model.ts";
 import { kv } from "../../core/shared/index.ts";
 import { Keys } from "../routes/users/data/user.data.ts";
-
-// IMPORTANT: Store this securely in an environment variable
-const JWT_SECRET_KEY = "your-super-secret-key";
-const key = await crypto.subtle.importKey(
-  "raw",
-  new TextEncoder().encode(JWT_SECRET_KEY),
-  { name: "HMAC", hash: "SHA-256" },
-  true,
-  ["sign", "verify"],
-);
+import { jwtKey } from "./jwt.ts";
 
 export interface AuthenticatedRequest extends Request {
   user?: User;
@@ -39,7 +30,7 @@ export async function authMiddleware(
   }
 
   try {
-    const payload = await verify(token, key);
+    const payload = await verify(token, jwtKey);
     const userId = payload.userId as string;
 
     if (!userId) {

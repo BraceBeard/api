@@ -1,18 +1,9 @@
 import { ulid } from "@std/ulid/ulid";
-import { create } from "djwt";
+import { create } from "@zaubrik/djwt";
 import { User } from "../models/user.model.ts";
 import { kv, router } from "../../../../core/shared/index.ts";
 import { Keys } from "../data/user.data.ts";
-
-// IMPORTANT: Store this securely in an environment variable
-const JWT_SECRET_KEY = "your-super-secret-key";
-const key = await crypto.subtle.importKey(
-  "raw",
-  new TextEncoder().encode(JWT_SECRET_KEY),
-  { name: "HMAC", hash: "SHA-256" },
-  true,
-  ["sign", "verify"],
-);
+import { jwtKey } from "../../../core/jwt.ts";
 
 /**
  * Agrega un usuario a la base de datos.
@@ -70,8 +61,8 @@ export async function UserAddRouteHandler(req: Request): Promise<Response> {
     // Generate JWT for the new user
     const jwt = await create(
       { alg: "HS256", typ: "JWT" },
-      { userId: id, exp: Date.now() + 3600000 }, // Expires in 1 hour
-      key,
+      { userId: id, exp: Math.floor(Date.now() / 1000) + 3600 }, // Expires in 1 hour (in seconds)
+      jwtKey,
     );
 
     return new Response(JSON.stringify({ id, token: jwt }), {
