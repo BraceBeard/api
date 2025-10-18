@@ -1,8 +1,9 @@
 {
 	"tasks": {
-		"dev": "deno run --unstable-kv --env-file -E -N -R -W --watch src/main.ts"
+		"dev": "deno run --unstable-kv --env-file --allow-env --allow-net --allow-read=.,.env,db/,src/ --allow-write=db/ --watch src/main.ts"
 	},
 	"imports": {
+		"@std/path": "jsr:@std/path@^1.1.2",
 		"@std/ulid": "jsr:@std/ulid@^1.0.0"
 	}
 }

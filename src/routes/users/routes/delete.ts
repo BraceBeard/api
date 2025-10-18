@@ -12,6 +12,11 @@ export async function UserDeleteRouteHandler(
   try {
     const id = params.id;
     if (!id) {
+      return new Response("Parametro 'id' faltante", { status: 400 });
+    }
+
+    const user = await kv.get([Keys.USERS, id]);
+    if (!user || user.value == null) {
       return new Response("Usuario no encontrado", { status: 404 });
     }
 

@@ -11,15 +11,15 @@ export async function UserRouteHandler(
   try {
     const id = params.id;
     if (!id) {
-      return new Response("Usuario no encontrado", { status: 404 });
+      return new Response("ID de usuario faltante", { status: 400 });
     }
 
     const user = await kv.get([Keys.USERS, id]);
-    if (!user) {
+    if (!user || user.value == null) {
       return new Response("Usuario no encontrado", { status: 404 });
     }
 
-    return new Response(JSON.stringify(user), {
+    return new Response(JSON.stringify(user.value), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {

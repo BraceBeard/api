@@ -10,11 +10,8 @@ export async function UsersRouteHandler(
   _req: Request,
 ): Promise<Response> {
   try {
-  const list: User[] = [];
-    const users = await kv.list({ prefix: [Keys.USERS]});
-    if (!users) {
-      return new Response("Usuarios no encontrados", { status: 404 });
-    }
+    const list: User[] = [];
+    const users = kv.list({ prefix: [Keys.USERS]});
 
     let count = 0;
     for await (const entry of users) {
@@ -30,6 +27,10 @@ export async function UsersRouteHandler(
     list.push(user);
     }
 
+    if (list.length === 0) {
+      return new Response("Usuarios no encontrados", { status: 404 });
+    }
+
     return new Response(JSON.stringify(list), {
       headers: { "Content-Type": "application/json" },
     });
@@ -39,10 +40,4 @@ export async function UsersRouteHandler(
   }
 }
 
-router.route(
-  {
-    pathname: "/users",
-    method: "GET",
-  },
-  UsersRouteHandler,
-);
+router.route("/users", UsersRouteHandler);
