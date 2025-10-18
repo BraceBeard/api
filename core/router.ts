@@ -1,51 +1,73 @@
 import { removeTrailingSlash } from "./shared/utils.ts";
 
 export class Router {
-	private _req: Request | undefined;
-	private routes: { pathname: string; method: string; callback: (req: Request, params: Record<string, string | undefined>) => Response | Promise<Response> }[] =
-		[];
-	private lastRoute: { pathname: string; method: string; callback: (req: Request, params: Record<string, string | undefined>) => Response | Promise<Response> } | undefined;
+  private _req: Request | undefined;
+  private routes: {
+    pathname: string;
+    method: string;
+    callback: (
+      req: Request,
+      params: Record<string, string | undefined>,
+    ) => Response | Promise<Response>;
+  }[] = [];
 
-	setRequest(request: Request) {
-		if (!request) {
-			throw new Error("Request is not defined");
-		}
+  setRequest(request: Request) {
+    if (!request) {
+      throw new Error("Request is not defined");
+    }
 
-		this._req = request;
-	}
+    this._req = request;
+  }
 
-	route(data: string | {
-		pathname: string;
-		method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | string;
-	}, callback: (req: Request, params: Record<string, string | undefined>) => Response | Promise<Response>) {
-		if (typeof data === "string") {
-			this.routes.push({ pathname: data, method: "GET", callback: (req, params) => callback(req, params) });
-		} else {
-			this.routes.push({
-				pathname: data.pathname,
-				method: (data.method || "GET").toUpperCase(),
-				callback: (req, params) => callback(req, params),
-			});
-			this.lastRoute = this.routes[this.routes.length - 1];
-		}
-	}
+  route(
+    data: string | {
+      pathname: string;
+      method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | string;
+    },
+    callback: (
+      req: Request,
+      params: Record<string, string | undefined>,
+    ) => Response | Promise<Response>,
+  ) {
+	let method = "GET";
+	let pathname = "";
+    if (typeof data === "string") {
+		method = "GET";
+		pathname = data;
+    } else {
+		method = (data.method || "GET").toUpperCase();
+		pathname = data.pathname;
+    }
+      this.routes.push({
+        method,
+        pathname,
+        callback: (req, params) => callback(req, params),
+      });
+  }
 
-	serve() {
-		Deno.serve({ port: 4242, hostname: "0.0.0.0" }, async (_req: Request) => {
-			this.setRequest(_req);
+  currentRoute(url: string) {
+    return this.routes.find((route) =>
+      new URLPattern({ pathname: route.pathname }).exec(
+        removeTrailingSlash(url),
+      )
+    );
+  }
 
-			for (const route of this.routes) {
-				const path = new URLPattern({ pathname: route.pathname });
-				const params = path.exec(_req.url)?.pathname.groups || {};
+  serve() {
+    Deno.serve({ port: 4242, hostname: "0.0.0.0" }, async (_req: Request) => {
+      this.setRequest(_req);
 
-				if (path.exec(removeTrailingSlash(_req.url)) && _req.method === route.method) {
-					return await route.callback(_req, params);
-				}
-			}
+      const route = this.currentRoute(_req.url);
+      if (
+        route &&
+        _req.method === route.method
+      ) {
+        return await route.callback(_req, {});
+      }
 
-			return new Response("Not found", {
-				status: 404,
-			});
-		});
-	}
+      return new Response("Not found", {
+        status: 404,
+      });
+    });
+  }
 }
