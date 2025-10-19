@@ -1,6 +1,7 @@
 import { verify } from "@zaubrik/djwt";
 import { User } from "../routes/users/models/user.model.ts";
 import { kv } from "../../core/shared/index.ts";
+import { Route } from "../../core/router.ts";
 import { Keys } from "../routes/users/data/user.data.ts";
 import { jwtKey } from "./jwt.ts";
 
@@ -11,12 +12,21 @@ export interface AuthenticatedRequest extends Request {
 export async function authMiddleware(
   req: AuthenticatedRequest,
   next: () => Promise<Response>,
+  route?: Route,
 ): Promise<Response> {
+  // If the route is explicitly public, skip authentication
+  if (route?.public) {
+    return await next();
+  }
+
   const authHeader = req.headers.get("Authorization");
 
-  // If no auth header is present and the route is public, continue
+  // If no auth header is present for a protected route, return 401
   if (!authHeader) {
-    return await next();
+    return new Response(JSON.stringify({ error: "No autorizado" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   if (!authHeader.startsWith("Bearer ")) {
@@ -39,7 +49,13 @@ export async function authMiddleware(
     const userId = payload.userId as string;
 
     if (!userId) {
-      throw new Error("Invalid token payload");
+      return new Response(
+        JSON.stringify({ error: "Token inválido: userId faltante" }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     }
 
     const userEntry = await kv.get([Keys.USERS, userId]);
