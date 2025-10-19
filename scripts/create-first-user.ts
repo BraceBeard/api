@@ -16,7 +16,7 @@ async function createFirstUser() {
 
     const res = await kv.atomic()
       .check({ key: [Keys.USERS_BY_EMAIL, data.email], versionstamp: null })
-      .set([Keys.USERS, id], data)
+      .set([Keys.USERS, id], {id, ...data})
       .set([Keys.USERS_BY_EMAIL, data.email], id)
       .commit();
 
