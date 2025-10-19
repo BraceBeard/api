@@ -1,7 +1,13 @@
 import { assertEquals } from "@std/assert";
 
 async function getClientIpWithEnv(env: Record<string, string>, headers: Record<string, string>): Promise<string | undefined> {
+  const originalEnv: Record<string, string | undefined> = {};
   const envKeys = Object.keys(env);
+
+  for (const key of envKeys) {
+    originalEnv[key] = Deno.env.get(key);
+  }
+
   try {
     for (const key of envKeys) {
       Deno.env.set(key, env[key]);
@@ -11,7 +17,12 @@ async function getClientIpWithEnv(env: Record<string, string>, headers: Record<s
     return getClientIp(req);
   } finally {
     for (const key of envKeys) {
-      Deno.env.delete(key);
+      const originalValue = originalEnv[key];
+      if (originalValue !== undefined) {
+        Deno.env.set(key, originalValue);
+      } else {
+        Deno.env.delete(key);
+      }
     }
   }
 }
