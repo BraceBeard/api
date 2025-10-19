@@ -30,7 +30,7 @@ export const handler = (req: Request) => {
 
 
 // Register the static route for GET and HEAD requests
-router.route({ pathname: "/assets/*", method: "GET", public: true }, handler);
-router.route({ pathname: "/assets/*", method: "HEAD", public: true }, handler);
+router.route({ pathname: "/assets/*", method: "GET" }, handler);
+router.route({ pathname: "/assets/*", method: "HEAD" }, handler);
 
 console.log("✅ Static file routes configured for /assets/*");

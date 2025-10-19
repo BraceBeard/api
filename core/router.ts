@@ -17,7 +17,6 @@ interface Route {
   pattern: URLPattern;
   callback: RouteHandler;
   middlewares: Middleware[];
-  public?: boolean;
 }
 
 interface RouterConfig {
@@ -49,7 +48,7 @@ export class Router {
    * @param handlers - One or more middlewares followed by the final handler
    */
   route(
-    data: string | { pathname: string; method: HttpMethod | string; public?: boolean },
+    data: string | { pathname: string; method: HttpMethod | string },
     ...handlers: [...Middleware[], RouteHandler]
   ) {
     // Validate that at least one handler is provided
@@ -60,14 +59,12 @@ export class Router {
     // Parse method and pathname
     let method: string = "GET";
     let pathname: string;
-    let isPublic: boolean | undefined;
 
     if (typeof data === "string") {
       pathname = data;
     } else {
       method = (data.method || "GET").toUpperCase();
       pathname = data.pathname;
-      isPublic = data.public;
     }
 
     // Validate pathname
@@ -93,7 +90,6 @@ export class Router {
       pattern,
       callback,
       middlewares,
-      public: isPublic,
     });
   }
 

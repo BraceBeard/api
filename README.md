@@ -48,7 +48,6 @@ cp .env.example .env
 Next, open the `.env` file and replace the placeholder values with your actual secrets. The application requires the following variables:
 
 - `JWT_SECRET_KEY`: A long, random, and secure string used for signing authentication tokens.
-- `ENABLE_ADMIN_ROLE`: (Optional) Set to `"true"` to enable admin-only restrictions on certain routes.
 
 ## 🏃 Ejecución
 
@@ -137,15 +136,13 @@ curl http://localhost:4242/assets/index.html
 
 ## 🔐 Autenticación
 
-El router implementa un modelo de **seguridad por defecto**. Todas las rutas están protegidas y requieren un token de autenticación JWT, a menos que se marquen explícitamente como públicas.
+El router implementa un modelo de **seguridad por defecto**. Todas las rutas están protegidas y requieren un token de autenticación JWT.
 
 ### Modelo Seguro por Defecto
 
-Para que una ruta sea accesible sin autenticación, debes añadir la propiedad `public: true` a su definición.
-
 ```typescript
 // Esta ruta es pública y no requiere token
-router.route({ pathname: "/", method: "GET", public: true }, homeRouteHandler);
+router.route({ pathname: "/", method: "GET" }, homeRouteHandler);
 
 // Esta ruta está protegida por defecto y requiere un token JWT válido
 router.route({ pathname: "/profile", method: "GET" }, userProfileHandler);
@@ -262,8 +259,7 @@ new Router(config?: RouterConfig)
 #### Métodos
 
 - **`route(data, ...handlers)`**: Registra una nueva ruta.
-  - `data`: Puede ser un `string` para la ruta (método GET por defecto) o un objeto `{ pathname, method, public }`.
-    - `public`: (Opcional) Un `boolean` que, si es `true`, marca la ruta como pública y accesible sin autenticación.
+  - `data`: Puede ser un `string` para la ruta (método GET por defecto) o un objeto `{ pathname, method }`.
   - `...handlers`: Una secuencia de middlewares y, al final, el manejador de la ruta.
 
 - **`use(middleware)`**: Aplica un middleware global a todas las rutas.

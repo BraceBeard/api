@@ -10,26 +10,24 @@ export async function UsersRouteHandler(
   req: AuthenticatedRequest,
 ): Promise<Response> {
   try {
-    if (Deno.env.get("ENABLE_ADMIN_ROLE") === "true") {
-      const authenticatedUser = req.user;
-      if (!authenticatedUser) {
-        return new Response(JSON.stringify({ error: "No autorizado" }), {
-          status: 401,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
+    const authenticatedUser = req.user;
+    if (!authenticatedUser) {
+      return new Response(JSON.stringify({ error: "No autorizado" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
-      if (authenticatedUser.role !== "admin") {
-        return new Response(
-          JSON.stringify({
-            error: "No tienes permiso para realizar esta acción",
-          }),
-          {
-            status: 403,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-      }
+    if (authenticatedUser.role !== "admin") {
+      return new Response(
+        JSON.stringify({
+          error: "No tienes permiso para realizar esta acción",
+        }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     }
 
     const url = new URL(req.url);
@@ -38,7 +36,12 @@ export async function UsersRouteHandler(
     if (limitParam) {
       limit = parseInt(limitParam);
       if (isNaN(limit) || limit < 1 || limit > 100) {
-        return new Response(JSON.stringify({ error: "El parámetro 'limit' debe ser un número entre 1 y 100" }), { status: 400, headers: { "Content-Type": "application/json" } });
+        return new Response(
+          JSON.stringify({
+            error: "El parámetro 'limit' debe ser un número entre 1 y 100",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
       }
     }
     const cursor = url.searchParams.get("cursor") || undefined;
@@ -56,7 +59,10 @@ export async function UsersRouteHandler(
     });
   } catch (e) {
     console.error(e);
-    return new Response(JSON.stringify({ error: "Error al obtener los usuarios" }), { status: 500, headers: { "Content-Type": "application/json" } });
+    return new Response(
+      JSON.stringify({ error: "Error al obtener los usuarios" }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
   }
 }
 
