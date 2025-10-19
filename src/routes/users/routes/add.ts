@@ -4,35 +4,13 @@ import { User } from "../models/user.model.ts";
 import { kv, router } from "../../../../core/shared/index.ts";
 import { Keys } from "../data/user.data.ts";
 import { jwtKey } from "../../../core/jwt.ts";
-import { AuthenticatedRequest, authMiddleware } from "../../../core/auth.ts";
+import { rateLimiter } from "../../../../core/rate-limit.ts";
 
 /**
  * Agrega un usuario a la base de datos.
  */
-export async function UserAddRouteHandler(
-  req: AuthenticatedRequest,
-): Promise<Response> {
+export async function UserAddRouteHandler(req: Request): Promise<Response> {
   try {
-    const authenticatedUser = req.user;
-    console.log(authenticatedUser);
-    if (!authenticatedUser) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    if (authenticatedUser.role !== "admin") {
-      return new Response(
-        JSON.stringify({
-          error: "No tienes permiso para realizar esta acción",
-        }),
-        {
-          status: 403,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
     const formData = await req.formData();
     const id = ulid();
 
@@ -122,6 +100,6 @@ router.route(
     pathname: "/users/add",
     method: "POST",
   },
-  authMiddleware,
+  rateLimiter((req) => req.headers.get("x-forwarded-for") ?? undefined),
   UserAddRouteHandler,
 );
