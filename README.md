@@ -1,6 +1,6 @@
 # 🚀 API Router - Deno
 
-Un servidor HTTP para Deno, ligero, de alto rendimiento y con cero dependencias. Implementa un sistema de enrutamiento avanzado con soporte para middlewares, parámetros dinámicos y servicio de archivos estáticos.
+Un servidor HTTP para Deno, ligero, de alto rendimiento y con cero dependencias. Implementa un sistema de enrutamiento avanzado con soporte para middlewares, parámetros dinámicos, servicio de archivos estáticos y un modelo de autenticación seguro por defecto.
 
 ## ✨ Características
 
@@ -48,6 +48,7 @@ cp .env.example .env
 Next, open the `.env` file and replace the placeholder values with your actual secrets. The application requires the following variables:
 
 - `JWT_SECRET_KEY`: A long, random, and secure string used for signing authentication tokens.
+- `ENABLE_ADMIN_ROLE`: (Optional) Set to `"true"` to enable admin-only restrictions on certain routes.
 
 ## 🏃 Ejecución
 
@@ -59,13 +60,20 @@ deno task dev
 
 Esto iniciará el servidor en `http://0.0.0.0:4242` con hot reload habilitado.
 
+### Crear el Primer Usuario (Admin)
+
+Para interactuar con las rutas protegidas, primero debes crear un usuario administrador. Este comando creará un usuario con el rol de `admin` y te proporcionará un token JWT para autenticarte.
+
+```bash
+deno task create-first-user
+```
+
 **Salida esperada:**
 ```plaintext
-🚀 Server listening on http://0.0.0.0:4242
-[2025-10-18T21:30:27.332Z] POST    / 200 1.35ms
-[2025-10-18T21:30:37.307Z] POST    /user/add/ 200 13.63ms
-[2025-10-18T21:30:42.841Z] GET     / 200 0.40ms
+Token: <YOUR_JWT_TOKEN>
 ```
+
+Guarda este token. Lo necesitarás para hacer peticiones a las rutas protegidas.
 
 ### Modo Producción
 
@@ -101,27 +109,54 @@ api/
 
 ## 🔌 Rutas Disponibles
 
-| Ruta                | Método | Descripción                                        |
-| ------------------- | ------ | -------------------------------------------------- |
-| `/`                 | GET    | Página principal - Retorna mensaje de bienvenida   |
-| `/test`             | GET    | Página de prueba - Muestra variable de entorno     |
-| `/user/:id/:name`   | GET    | Página de usuario con parámetros dinámicos         |
-| `/assets/*`         | GET    | Sirve archivos estáticos desde `src/public`        |
+| Ruta                | Método | Descripción                                                                 |
+| ------------------- | ------ | --------------------------------------------------------------------------- |
+| `/`                 | GET    | Página principal - Retorna mensaje de bienvenida (Pública)                |
+| `/users/add`        | POST   | Crea un nuevo usuario. (Pública)                                            |
+| `/users`            | GET    | Obtiene una lista paginada de usuarios. (Protegida)                         |
+| `/users/:id`        | GET    | Obtiene un usuario específico por su ID. (Protegida)                        |
+| `/users/:id`        | DELETE | Elimina un usuario específico por su ID. (Protegida)                          |
+| `/assets/*`         | GET    | Sirve archivos estáticos desde `src/public`. (Pública)                      |
 
 ### Ejemplos de Uso con `curl`
 
 ```bash
-# Ruta raíz
-curl http://localhost:4242/
+# Crear un nuevo usuario
+curl -X POST -F "name=John Doe" -F "email=john.doe@example.com" http://localhost:4242/users/add
 
-# Ruta con parámetros
-curl http://localhost:4242/user/123/john
+# Obtener una lista de usuarios (requiere token)
+# Reemplaza <YOUR_JWT_TOKEN> con el token obtenido del script create-first-user
+curl -H "Authorization: Bearer <YOUR_JWT_TOKEN>" http://localhost:4242/users?limit=5
+
+# Obtener un usuario específico (requiere token)
+curl -H "Authorization: Bearer <YOUR_JWT_TOKEN>" http://localhost:4242/users/<USER_ID>
 
 # Archivo estático (HTML)
 curl http://localhost:4242/assets/index.html
+```
 
-# Archivo estático (CSS)
-curl http://localhost:4242/assets/css/main.css
+## 🔐 Autenticación
+
+El router implementa un modelo de **seguridad por defecto**. Todas las rutas están protegidas y requieren un token de autenticación JWT, a menos que se marquen explícitamente como públicas.
+
+### Modelo Seguro por Defecto
+
+Para que una ruta sea accesible sin autenticación, debes añadir la propiedad `public: true` a su definición.
+
+```typescript
+// Esta ruta es pública y no requiere token
+router.route({ pathname: "/", method: "GET", public: true }, homeRouteHandler);
+
+// Esta ruta está protegida por defecto y requiere un token JWT válido
+router.route({ pathname: "/profile", method: "GET" }, userProfileHandler);
+```
+
+### Realizar Peticiones Autenticadas
+
+Para acceder a una ruta protegida, incluye el token JWT en la cabecera `Authorization` con el prefijo `Bearer`.
+
+```bash
+curl -H "Authorization: Bearer <YOUR_JWT_TOKEN>" http://localhost:4242/users
 ```
 
 ## 🧩 Uso del Router
@@ -227,7 +262,8 @@ new Router(config?: RouterConfig)
 #### Métodos
 
 - **`route(data, ...handlers)`**: Registra una nueva ruta.
-  - `data`: Puede ser un `string` para la ruta (método GET por defecto) o un objeto `{ pathname, method }`.
+  - `data`: Puede ser un `string` para la ruta (método GET por defecto) o un objeto `{ pathname, method, public }`.
+    - `public`: (Opcional) Un `boolean` que, si es `true`, marca la ruta como pública y accesible sin autenticación.
   - `...handlers`: Una secuencia de middlewares y, al final, el manejador de la ruta.
 
 - **`use(middleware)`**: Aplica un middleware global a todas las rutas.
@@ -295,7 +331,7 @@ deno task test
 Las pruebas verifican:
 - Enrutamiento de todos los métodos HTTP
 - Manejo de parámetros dinámicos
-- Ejecución correcta de middlewares
+- Ejecución correcta de middlewares (incluyendo el de autenticación)
 - Servicio de archivos estáticos
 - Manejo de errores 404
 
@@ -312,7 +348,7 @@ Las pruebas verifican:
 ### Corto Plazo
 - ✅ Configuración flexible del servidor
 - ✅ Sistema de logging avanzado
-- ✅ Validación de entrada robusta
+- ✅ Validación de entrada robusta (paginación y errores de token)
 - ✅ Documentación JSDoc completa
 - 🔄 **Rate Limiting**: Protección contra abuso
 - 🔄 **CORS Middleware**: Soporte para peticiones cross-origin
