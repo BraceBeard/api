@@ -1,11 +1,11 @@
-import { kv } from "./shared/index.ts";
+import { kv as defaultKv } from "./shared/index.ts";
 
 // Configuration from environment variables with defaults
 const RATE_LIMIT_WINDOW_MS = parseInt(Deno.env.get("RATE_LIMIT_WINDOW_MS") || "60000");
 const RATE_LIMIT_MAX_REQUESTS = parseInt(Deno.env.get("RATE_LIMIT_MAX_REQUESTS") || "10");
 const RATE_LIMIT_TTL = RATE_LIMIT_WINDOW_MS + 5000; // 5-second margin
 
-export function rateLimiter(getIp: (req: Request) => string | undefined) {
+export function rateLimiter(getIp: (req: Request) => string | undefined, kv: Deno.Kv = defaultKv) {
   return async (req: Request, next: () => Promise<Response>): Promise<Response> => {
     const ip = getIp(req);
     if (!ip) {
