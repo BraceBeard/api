@@ -15,7 +15,7 @@ export async function UserDeleteRouteHandler(
     const id = params.id;
     if (!id) {
       return new Response(
-        JSON.stringify({ error: "Parametro 'id' faltante" }),
+        JSON.stringify({ error: "Parámetro 'id' faltante" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -23,13 +23,7 @@ export async function UserDeleteRouteHandler(
       );
     }
 
-    const authenticatedUser = req.user;
-    if (!authenticatedUser) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    const authenticatedUser = req.user!;
 
     if (authenticatedUser.role !== "admin" && authenticatedUser.id !== id) {
       return new Response(

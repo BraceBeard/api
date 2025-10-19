@@ -2,6 +2,7 @@ import { kv, router } from "@/core/shared/index.ts";
 import { AuthenticatedRequest, authMiddleware } from "@/core/auth.ts";
 import { Keys } from "../data/user.data.ts";
 import { User } from "../models/user.model.ts";
+import { sanitizeUser } from "@/core/shared/utils.ts";
 
 /**
  * Obtiene un usuario de la base de datos.
@@ -20,13 +21,7 @@ export async function UserGetRouteHandler(
       });
     }
 
-    const authenticatedUser = req.user;
-    if (!authenticatedUser) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    const authenticatedUser = req.user!;
 
     // Check if the authenticated user has permission to view the requested user's data.
     if (authenticatedUser.role !== "admin" && authenticatedUser.id !== id) {
@@ -50,7 +45,7 @@ export async function UserGetRouteHandler(
 
     const user = userEntry.value;
 
-    return new Response(JSON.stringify(user), {
+    return new Response(JSON.stringify(sanitizeUser(user)), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {

@@ -1,4 +1,5 @@
 {
+  "nodeModulesDir": "auto",
   "imports": {
     "@/": "./",
     "@std/media-types": "jsr:@std/media-types@^1.1.0",
@@ -9,10 +10,13 @@
     "@std/ulid": "jsr:@std/ulid@^1.0.0",
     "@zaubrik/djwt": "jsr:@zaubrik/djwt@^3.0.2",
     "@std/testing/mock": "jsr:@std/testing@^1.0.0/mock",
-    "ipaddr.js": "npm:ipaddr.js@^2.2.0"
+    "ipaddr.js": "npm:ipaddr.js@^2.2.0",
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.5",
+    "@bcrypt": "npm:bcrypt@^5.1.1",
+    "validator": "npm:validator@^13.12.0"
   },
   "tasks": {
-    "dev": "deno run --unstable-kv --env-file --allow-env --allow-net --allow-read=.,.env,.db/,src/ --allow-write=.db/ --watch src/main.ts",
+    "dev": "deno run --unstable-kv --env-file --allow-env --allow-net --allow-read --allow-write=.db/ --allow-ffi --watch src/main.ts",
     "test": "JWT_SECRET_KEY='test-secret' deno test --unstable-kv --allow-env --allow-read --allow-net --allow-write",
     "create-first-user": "deno run --unstable-kv --env-file --allow-env --allow-net --allow-read=.,.env,.db/,src/ --allow-write=.db/ scripts/create-first-user.ts"
   }

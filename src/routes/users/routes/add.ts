@@ -1,11 +1,11 @@
 import { ulid } from "@std/ulid/ulid";
-import { create } from "@zaubrik/djwt";
 import { User } from "../models/user.model.ts";
 import { kv, router } from "@/core/shared/index.ts";
 import { Keys } from "../data/user.data.ts";
-import { jwtKey } from "@/core/jwt.ts";
+import { generateUserToken } from "@/core/jwt-utils.ts";
 import { rateLimiter } from "@/core/rate-limit.ts";
 import { getClientIp } from "@/core/ip-helper.ts";
+import * as bcrypt from "@bcrypt";
 
 /**
  * Agrega un usuario a la base de datos.
@@ -22,12 +22,16 @@ export async function UserAddRouteHandler(
     // Validate and extract form data
     const nameValue = formData.get("name");
     const emailValue = formData.get("email");
+    const passwordValue = formData.get("password");
 
     // Check that values are strings (not File objects or null)
-    if (typeof nameValue !== "string" || typeof emailValue !== "string") {
+    if (
+      typeof nameValue !== "string" || typeof emailValue !== "string" ||
+      typeof passwordValue !== "string"
+    ) {
       return new Response(
         JSON.stringify({
-          error: "Nombre y correo electrónico deben ser texto",
+          error: "Nombre, correo electrónico y contraseña deben ser texto",
         }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
@@ -36,11 +40,12 @@ export async function UserAddRouteHandler(
     // Trim and validate non-empty
     const name = nameValue.trim();
     const email = emailValue.trim();
+    const password = passwordValue.trim();
 
-    if (!name || !email) {
+    if (!name || !email || !password) {
       return new Response(
         JSON.stringify({
-          error: "Nombre y correo electrónico son obligatorios",
+          error: "Nombre, correo electrónico y contraseña son obligatorios",
         }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
@@ -55,11 +60,14 @@ export async function UserAddRouteHandler(
       );
     }
 
+    const passwordHash = await bcrypt.hash(password, 10);
+
     const data: User = {
       id,
       name,
       email,
       role: "user",
+      password: passwordHash,
     };
 
     const res = await kv.atomic()
@@ -81,11 +89,7 @@ export async function UserAddRouteHandler(
     }
 
     // Generate JWT for the new user
-    const jwt = await create(
-      { alg: "HS256", typ: "JWT" },
-      { userId: id, exp: Math.floor(Date.now() / 1000) + 3600 }, // Expires in 1 hour (in seconds)
-      jwtKey,
-    );
+    const jwt = await generateUserToken(id);
 
     return new Response(JSON.stringify({ id, token: jwt }), {
       status: 201,

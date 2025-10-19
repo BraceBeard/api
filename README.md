@@ -49,6 +49,15 @@ Next, open the `.env` file and replace the placeholder values with your actual s
 
 - `JWT_SECRET_KEY`: A long, random, and secure string used for signing authentication tokens.
 
+### Admin User Creation
+
+The `create-first-user` script uses the following environment variables to configure the initial admin account:
+
+- `ADMIN_NAME`: The name for the admin user. Defaults to `"Admin"`.
+- `ADMIN_EMAIL`: The email address for the admin user. **This is required.**
+- `ADMIN_ROLE`: The role for the admin user. Defaults to `"admin"`.
+- `ADMIN_PASSWORD`: The password for the admin user. If not provided, a secure, random password will be generated and printed to the console.
+
 ## 🏃 Ejecución
 
 ### Modo Desarrollo

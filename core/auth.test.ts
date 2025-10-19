@@ -1,5 +1,4 @@
 import { assertEquals, assertExists } from "@std/assert";
-import { spy } from "@std/testing/mock";
 import { createAuthMiddleware, AuthenticatedRequest } from "./auth.ts";
 import { AuthUser } from "./models/auth.model.ts";
 import { Payload, verify } from "@zaubrik/djwt";
@@ -17,17 +16,19 @@ const mockInfo: Deno.ServeHandlerInfo = {
   completed: Promise.resolve(),
 };
 
-// Mock KV
-const mockKv = {
-  get: spy(<T = unknown>(): Promise<Deno.KvEntryMaybe<T>> => {
-    // This mock implementation is simplified for the test case.
-    // It assumes any 'get' call is for the mockUser.
-    return Promise.resolve({
-      key: ["users", mockUser.id],
-      value: mockUser as T,
-      versionstamp: "1",
-    });
+// Mock KV for different test scenarios
+const mockKv = { get: () => Promise.resolve(null) } as unknown as Deno.Kv;
+
+const mockKvSuccess = {
+  get: <T = unknown>(): Promise<Deno.KvEntryMaybe<T>> => Promise.resolve({
+    key: ["users", mockUser.id],
+    value: mockUser as T,
+    versionstamp: "1",
   }),
+} as unknown as Deno.Kv;
+
+const mockKvFailure = {
+  get: <T = unknown>(): Promise<Deno.KvEntryMaybe<T>> => Promise.resolve(null as unknown as Deno.KvEntryMaybe<T>),
 } as unknown as Deno.Kv;
 
 // Define a mock user for testing
@@ -85,7 +86,8 @@ Deno.test("authMiddleware - should return 401 if token payload is missing userId
 
 Deno.test("authMiddleware - should return 401 if user is not found", async () => {
   const verifyMock = <T extends Payload>(): Promise<T> => Promise.resolve({ userId: "non-existent-user" } as unknown as T);
-  const authMiddleware = createAuthMiddleware({ kv: mockKv, verify: verifyMock });
+
+  const authMiddleware = createAuthMiddleware({ kv: mockKvFailure, verify: verifyMock });
   const req = new Request("http://localhost", {
     headers: { "Authorization": "Bearer valid-token-user-not-found" },
   }) as AuthenticatedRequest;
@@ -95,9 +97,8 @@ Deno.test("authMiddleware - should return 401 if user is not found", async () =>
 
 Deno.test("authMiddleware - should call next and attach user to request on success", async () => {
   const verifyMock = <T extends Payload>(): Promise<T> => Promise.resolve({ userId: mockUser.id } as unknown as T);
-  
 
-  const authMiddleware = createAuthMiddleware({ kv: mockKv, verify: verifyMock });
+  const authMiddleware = createAuthMiddleware({ kv: mockKvSuccess, verify: verifyMock });
 
   const req = new Request("http://localhost", {
     headers: { "Authorization": `Bearer valid-token-for-${mockUser.id}` },

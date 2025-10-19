@@ -3,6 +3,7 @@ import { kv } from "@/core/shared/index.ts";
 import { AuthenticatedRequest, authMiddleware } from "@/core/auth.ts";
 import { Keys } from "../data/user.data.ts";
 import { User } from "../models/user.model.ts";
+import { sanitizeUser } from "@/core/shared/utils.ts";
 
 /**
  * Obtiene todos los usuarios de la base de datos.
@@ -13,13 +14,7 @@ export async function UsersRouteHandler(
   _info: Deno.ServeHandlerInfo,
 ): Promise<Response> {
   try {
-    const authenticatedUser = req.user;
-    if (!authenticatedUser) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    const authenticatedUser = req.user!;
 
     if (authenticatedUser.role !== "admin") {
       return new Response(
@@ -52,7 +47,7 @@ export async function UsersRouteHandler(
     const userEntries = kv.list<User>({ prefix: [Keys.USERS] }, { limit, cursor });
     const users = [];
     for await (const entry of userEntries) {
-      users.push(entry.value);
+      users.push(sanitizeUser(entry.value));
     }
 
     return new Response(JSON.stringify({ users, cursor: userEntries.cursor }), {
@@ -67,4 +62,4 @@ export async function UsersRouteHandler(
   }
 }
 
-router.route("/users", authMiddleware, UsersRouteHandler);
+router.route({ pathname: "/users", method: "GET" }, authMiddleware, UsersRouteHandler);
