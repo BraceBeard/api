@@ -1,6 +1,20 @@
 import { assertEquals } from "@std/assert";
 
-async function getClientIpWithEnv(env: Record<string, string>, headers: Record<string, string>): Promise<string | undefined> {
+// Mock the Deno.ServeHandlerInfo object
+const mockInfo: Deno.ServeHandlerInfo = {
+  remoteAddr: {
+    transport: "tcp",
+    hostname: "127.0.0.1",
+    port: 8080,
+  },
+  completed: Promise.resolve(),
+};
+
+async function getClientIpWithEnv(
+  env: Record<string, string>,
+  headers: Record<string, string>,
+  info: Deno.ServeHandlerInfo = mockInfo,
+): Promise<string | undefined> {
   const originalEnv: Record<string, string | undefined> = {};
   const envKeys = Object.keys(env);
 
@@ -14,7 +28,7 @@ async function getClientIpWithEnv(env: Record<string, string>, headers: Record<s
     }
     const { getClientIp } = await import(`./ip-helper.ts?t=${Date.now()}`);
     const req = new Request("http://localhost", { headers });
-    return getClientIp(req);
+    return getClientIp(req, info);
   } finally {
     for (const key of envKeys) {
       const originalValue = originalEnv[key];
@@ -29,7 +43,7 @@ async function getClientIpWithEnv(env: Record<string, string>, headers: Record<s
 
 Deno.test("getClientIp - no trusted proxies", async () => {
   const ip = await getClientIpWithEnv({}, { "x-forwarded-for": "1.1.1.1, 2.2.2.2" });
-  assertEquals(ip, undefined);
+  assertEquals(ip, (mockInfo.remoteAddr as Deno.NetAddr).hostname);
 });
 
 Deno.test("getClientIp - with trusted proxies", async () => {

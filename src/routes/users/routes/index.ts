@@ -1,22 +1,20 @@
-import { User } from "../models/user.model.ts";
-import { kv, router } from "../../../../core/shared/index.ts";
+import { router } from "@/core/shared/index.ts";
+import { kv } from "@/core/shared/index.ts";
+import { AuthenticatedRequest, authMiddleware } from "@/core/auth.ts";
 import { Keys } from "../data/user.data.ts";
-import { AuthenticatedRequest, authMiddleware } from "../../../core/auth.ts";
+import { User } from "../models/user.model.ts";
+import { sanitizeUser } from "@/core/shared/utils.ts";
 
 /**
  * Obtiene todos los usuarios de la base de datos.
  */
 export async function UsersRouteHandler(
   req: AuthenticatedRequest,
+  _params: Record<string, string | undefined>,
+  _info: Deno.ServeHandlerInfo,
 ): Promise<Response> {
   try {
-    const authenticatedUser = req.user;
-    if (!authenticatedUser) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    const authenticatedUser = req.user!;
 
     if (authenticatedUser.role !== "admin") {
       return new Response(
@@ -32,6 +30,7 @@ export async function UsersRouteHandler(
 
     const url = new URL(req.url);
     const limitParam = url.searchParams.get("limit");
+    const cursor = url.searchParams.get("cursor") || undefined;
     let limit = 10;
     if (limitParam) {
       limit = parseInt(limitParam);
@@ -44,17 +43,14 @@ export async function UsersRouteHandler(
         );
       }
     }
-    const cursor = url.searchParams.get("cursor") || undefined;
 
-    const list: User[] = [];
-    const users = kv.list({ prefix: [Keys.USERS] }, { limit, cursor });
-
-    for await (const entry of users) {
-      const user = entry.value as User;
-      list.push(user);
+    const userEntries = kv.list<User>({ prefix: [Keys.USERS] }, { limit, cursor });
+    const users = [];
+    for await (const entry of userEntries) {
+      users.push(sanitizeUser(entry.value));
     }
 
-    return new Response(JSON.stringify({ users: list, cursor: users.cursor }), {
+    return new Response(JSON.stringify({ users, cursor: userEntries.cursor }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
@@ -66,4 +62,4 @@ export async function UsersRouteHandler(
   }
 }
 
-router.route("/users", authMiddleware, UsersRouteHandler);
+router.route({ pathname: "/users", method: "GET" }, authMiddleware, UsersRouteHandler);

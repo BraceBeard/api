@@ -1,13 +1,16 @@
-import { kv, router } from "../../../../core/shared/index.ts";
-import { AuthenticatedRequest, authMiddleware } from "../../../core/auth.ts";
+import { kv, router } from "@/core/shared/index.ts";
+import { AuthenticatedRequest, authMiddleware } from "@/core/auth.ts";
 import { Keys } from "../data/user.data.ts";
+import { User } from "../models/user.model.ts";
+import { sanitizeUser } from "@/core/shared/utils.ts";
 
 /**
  * Obtiene un usuario de la base de datos.
  */
-export async function UserRouteHandler(
+export async function UserGetRouteHandler(
   req: AuthenticatedRequest,
   params: Record<string, string | undefined>,
+  _info: Deno.ServeHandlerInfo,
 ): Promise<Response> {
   try {
     const id = params.id;
@@ -18,19 +21,12 @@ export async function UserRouteHandler(
       });
     }
 
-    const authenticatedUser = req.user;
-    if (!authenticatedUser) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    const authenticatedUser = req.user!;
 
+    // Check if the authenticated user has permission to view the requested user's data.
     if (authenticatedUser.role !== "admin" && authenticatedUser.id !== id) {
       return new Response(
-        JSON.stringify({
-          error: "No tienes permiso para realizar esta acción",
-        }),
+        JSON.stringify({ error: "No tienes permiso para realizar esta acción" }),
         {
           status: 403,
           headers: { "Content-Type": "application/json" },
@@ -38,15 +34,18 @@ export async function UserRouteHandler(
       );
     }
 
-    const user = await kv.get([Keys.USERS, id]);
-    if (!user || user.value == null) {
+    // Fetch the requested user from the database.
+    const userEntry = await kv.get<User>([Keys.USERS, id]);
+    if (!userEntry?.value) {
       return new Response(JSON.stringify({ error: "Usuario no encontrado" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify(user.value), {
+    const user = userEntry.value;
+
+    return new Response(JSON.stringify(sanitizeUser(user)), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
@@ -58,4 +57,4 @@ export async function UserRouteHandler(
   }
 }
 
-router.route("/users/:id", authMiddleware, UserRouteHandler);
+router.route("/users/:id", authMiddleware, UserGetRouteHandler);

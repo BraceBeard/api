@@ -1,6 +1,7 @@
-import { kv, router } from "../../../../core/shared/index.ts";
+import { kv, router } from "@/core/shared/index.ts";
 import { Keys } from "../data/user.data.ts";
-import { AuthenticatedRequest, authMiddleware } from "../../../core/auth.ts";
+import { User } from "../models/user.model.ts";
+import { AuthenticatedRequest, authMiddleware } from "@/core/auth.ts";
 
 /**
  * Elimina un usuario de la base de datos.
@@ -8,12 +9,13 @@ import { AuthenticatedRequest, authMiddleware } from "../../../core/auth.ts";
 export async function UserDeleteRouteHandler(
   req: AuthenticatedRequest,
   params: Record<string, string | undefined>,
+  _info: Deno.ServeHandlerInfo,
 ): Promise<Response> {
   try {
     const id = params.id;
     if (!id) {
       return new Response(
-        JSON.stringify({ error: "Parametro 'id' faltante" }),
+        JSON.stringify({ error: "Parámetro 'id' faltante" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -21,13 +23,7 @@ export async function UserDeleteRouteHandler(
       );
     }
 
-    const authenticatedUser = req.user;
-    if (!authenticatedUser) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    const authenticatedUser = req.user!;
 
     if (authenticatedUser.role !== "admin" && authenticatedUser.id !== id) {
       return new Response(
@@ -41,15 +37,31 @@ export async function UserDeleteRouteHandler(
       );
     }
 
-    const user = await kv.get([Keys.USERS, id]);
-    if (!user || user.value == null) {
+    const userEntry = await kv.get<User>([Keys.USERS, id]);
+    if (!userEntry?.value) {
       return new Response(JSON.stringify({ error: "Usuario no encontrado" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    await kv.delete([Keys.USERS, id]);
+    const user = userEntry.value;
+
+    // Use an atomic operation to ensure both records are deleted.
+    const res = await kv.atomic()
+      .delete([Keys.USERS, id])
+      .delete([Keys.USERS_BY_EMAIL, user.email])
+      .commit();
+
+    if (!res.ok) {
+      return new Response(
+        JSON.stringify({ error: "Error al eliminar el usuario" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
 
     return new Response(
       JSON.stringify({
