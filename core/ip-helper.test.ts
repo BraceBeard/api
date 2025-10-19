@@ -1,12 +1,19 @@
 import { assertEquals } from "@std/assert";
 
 async function getClientIpWithEnv(env: Record<string, string>, headers: Record<string, string>): Promise<string | undefined> {
-  for (const key in env) {
-    Deno.env.set(key, env[key]);
+  const envKeys = Object.keys(env);
+  try {
+    for (const key of envKeys) {
+      Deno.env.set(key, env[key]);
+    }
+    const { getClientIp } = await import(`./ip-helper.ts?t=${Date.now()}`);
+    const req = new Request("http://localhost", { headers });
+    return getClientIp(req);
+  } finally {
+    for (const key of envKeys) {
+      Deno.env.delete(key);
+    }
   }
-  const { getClientIp } = await import(`./ip-helper.ts?t=${Date.now()}`);
-  const req = new Request("http://localhost", { headers });
-  return getClientIp(req);
 }
 
 Deno.test("getClientIp - no trusted proxies", async () => {
