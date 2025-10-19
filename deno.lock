@@ -182,6 +182,7 @@
       "jsr:@std/assert@1",
       "jsr:@std/http@^1.0.21",
       "jsr:@std/media-types@^1.1.0",
+      "jsr:@std/net@^1.0.6",
       "jsr:@std/path@^1.1.2",
       "jsr:@std/ulid@1",
       "jsr:@zaubrik/djwt@^3.0.2"
