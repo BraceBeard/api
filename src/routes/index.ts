@@ -1,11 +1,11 @@
 import { router } from "../../core/shared/index.ts";
 
-export function homeRouteHandler(_req: Request): Response {
-	return new Response("It's working!");
+export function ApiRootHandler(
+  _req: Request,
+  _params: Record<string, string | undefined>,
+  _info: Deno.ServeHandlerInfo,
+): Response {
+  return new Response("It's working!");
 }
 
-router.route("/", homeRouteHandler);
-router.route({
-	pathname: "/",
-	method: "POST",
-}, homeRouteHandler);
+router.route({ pathname: "/", method: "GET" }, ApiRootHandler);

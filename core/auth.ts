@@ -1,17 +1,28 @@
 import { verify } from "@zaubrik/djwt";
 import { AuthUser } from "./models/auth.model.ts";
-import { kv } from "./shared/index.ts";
-import { Keys } from "./data/auth.data.ts";
 import { jwtKey } from "./jwt.ts";
+import { kv } from "./shared/index.ts";
+import { Keys } from "../src/routes/users/data/user.data.ts";
+
+// In-memory store for users, exported for testing purposes
+export const userStore = new Map<string, AuthUser>();
+
 
 export interface AuthenticatedRequest extends Request {
   user?: AuthUser;
 }
 
-export async function authMiddleware(
-  req: AuthenticatedRequest,
-  next: () => Promise<Response>,
-): Promise<Response> {
+export function createAuthMiddleware(
+  dependencies: {
+    kv: Deno.Kv;
+    verify: typeof verify;
+  }
+) {
+  return async function authMiddleware(
+    req: AuthenticatedRequest,
+    next: () => Promise<Response>,
+    _info: Deno.ServeHandlerInfo,
+  ): Promise<Response> {
   const authHeader = req.headers.get("Authorization");
 
   if (!authHeader) {
@@ -21,14 +32,15 @@ export async function authMiddleware(
     });
   }
 
-  if (!authHeader.startsWith("Bearer ")) {
+  const token = authHeader.startsWith("Bearer ") ? authHeader.substring(7).trim() : null;
+
+  if (token === null) {
     return new Response(JSON.stringify({ error: "Formato de token inválido" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  const token = authHeader.split(" ")[1];
   if (!token) {
     return new Response(JSON.stringify({ error: "Token no proporcionado" }), {
       status: 401,
@@ -37,7 +49,7 @@ export async function authMiddleware(
   }
 
   try {
-    const payload = await verify(token, jwtKey);
+    const payload = await dependencies.verify(token, jwtKey);
     const userId = payload.userId as string;
 
     if (!userId) {
@@ -50,9 +62,10 @@ export async function authMiddleware(
       );
     }
 
-    const userEntry = await kv.get([Keys.USERS, userId]);
+    const userEntry = await dependencies.kv.get<AuthUser>([Keys.USERS, userId]);
+    const user = userEntry?.value;
 
-    if (!userEntry || !userEntry.value) {
+    if (!user) {
       return new Response(
         JSON.stringify({ error: "Usuario no encontrado" }),
         {
@@ -62,7 +75,7 @@ export async function authMiddleware(
       );
     }
 
-    req.user = userEntry.value as AuthUser;
+    req.user = user;
   } catch (error) {
     console.error("Authentication error:", error);
     return new Response(
@@ -74,5 +87,11 @@ export async function authMiddleware(
     );
   }
 
-  return await next();
+      return await next();
+  };
 }
+
+export const authMiddleware = createAuthMiddleware({
+  kv,
+  verify,
+});

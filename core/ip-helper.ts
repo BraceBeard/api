@@ -52,18 +52,17 @@ function isIpTrusted(ip: string): boolean {
  * @param req The incoming request.
  * @returns The validated client IP address or undefined if not found.
  */
-export function getClientIp(req: Request): string | undefined {
+export function getClientIp(
+  req: Request,
+  info: Deno.ServeHandlerInfo,
+): string | undefined {
   const xffHeader = req.headers.get('x-forwarded-for');
 
-  // If no trusted proxies are configured, do not trust the X-Forwarded-For header.
+  // If no trusted proxies are configured, fall back to the direct connection IP.
   if (trustedProxies.length === 0) {
-    if (xffHeader) {
-      console.warn(
-        'X-Forwarded-For header is present but no trusted proxies are configured. ' +
-        'Set TRUSTED_PROXIES to trust this header. Falling back to global rate limit.'
-      );
+    if (info.remoteAddr.transport === "tcp" || info.remoteAddr.transport === "udp") {
+      return info.remoteAddr.hostname;
     }
-    // Cannot determine a reliable IP, so we return undefined.
     return undefined;
   }
 

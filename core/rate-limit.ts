@@ -5,9 +5,16 @@ const RATE_LIMIT_WINDOW_MS = parseInt(Deno.env.get("RATE_LIMIT_WINDOW_MS") || "6
 const RATE_LIMIT_MAX_REQUESTS = parseInt(Deno.env.get("RATE_LIMIT_MAX_REQUESTS") || "10");
 const RATE_LIMIT_TTL = RATE_LIMIT_WINDOW_MS + 5000; // 5-second margin
 
-export function rateLimiter(getIp: (req: Request) => string | undefined, kv: Deno.Kv = defaultKv) {
-  return async (req: Request, next: () => Promise<Response>): Promise<Response> => {
-    const ip = getIp(req);
+export function rateLimiter(
+  getIp: (req: Request, info: Deno.ServeHandlerInfo) => string | undefined,
+  kv: Deno.Kv = defaultKv,
+) {
+  return async (
+    req: Request,
+    next: () => Promise<Response>,
+    info: Deno.ServeHandlerInfo,
+  ): Promise<Response> => {
+    const ip = getIp(req, info);
     if (!ip) {
       // Fail closed if the client IP cannot be determined.
       console.error("Could not determine client IP for rate limiting. Check proxy configuration.");

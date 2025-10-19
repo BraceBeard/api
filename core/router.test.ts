@@ -6,6 +6,16 @@ const createMockRequest = (method: string, path: string): Request => {
   return new Request(`http://localhost${path}`, { method });
 };
 
+// Mock the Deno.ServeHandlerInfo object
+const mockInfo: Deno.ServeHandlerInfo = {
+  remoteAddr: {
+    transport: "tcp",
+    hostname: "127.0.0.1",
+    port: 8080,
+  },
+  completed: Promise.resolve(),
+};
+
 Deno.test("Router - HTTP Method Routing", async (t) => {
   const router = new Router();
 
@@ -30,7 +40,7 @@ Deno.test("Router - HTTP Method Routing", async (t) => {
       const result = router.currentRoute(req);
       assertExists(result);
       if (!result) return;
-      const response = await result.route.callback(req, {});
+      const response = await result.route.callback(req, {}, mockInfo);
       assertEquals(await response.text(), expected);
     });
   }
@@ -50,7 +60,7 @@ Deno.test("Router - HTTP Method Routing", async (t) => {
 
 Deno.test("Router - Route with Parameters", () => {
   const router = new Router();
-  router.route({ pathname: "/users/:id", method: "GET" }, (_req, params) => {
+  router.route({ pathname: "/users/:id", method: "GET" }, (_req, params, _info) => {
     return new Response(`User ID: ${params.id}`);
   });
 
@@ -68,7 +78,7 @@ Deno.test("Router - Middleware Execution", async (t) => {
   const executionOrder: string[] = [];
 
   // Global middleware
-  router.use(async (_req, next) => {
+  router.use(async (_req, next, _info) => {
     executionOrder.push("global1");
     const response = await next();
     executionOrder.push("global1-after");
@@ -78,13 +88,13 @@ Deno.test("Router - Middleware Execution", async (t) => {
   // Route-specific middlewares and handler
   router.route(
     { pathname: "/middleware-test", method: "GET" },
-    async (_req, next) => {
+    async (_req, next, _info) => {
       executionOrder.push("route-specific1");
       const response = await next();
       executionOrder.push("route-specific1-after");
       return response;
     },
-    (_req, _params) => {
+    (_req, _params, _info) => {
       executionOrder.push("handler");
       return new Response("Middleware test complete");
     }
@@ -101,8 +111,8 @@ Deno.test("Router - Middleware Execution", async (t) => {
       ...routeResult.route.middlewares,
     ];
 
-    const finalHandler = () => routeResult.route.callback(req, routeResult.params);
-    await router['executeMiddlewares'](req, allMiddlewares, finalHandler, routeResult.route);
+    const finalHandler = () => routeResult.route.callback(req, routeResult.params, mockInfo);
+    await router['executeMiddlewares'](req, allMiddlewares, finalHandler, mockInfo, routeResult.route);
 
     assertEquals(executionOrder, [
       "global1",
@@ -119,11 +129,11 @@ Deno.test("Router - Middleware Execution", async (t) => {
 
     shortCircuitRouter.route(
       { pathname: "/short", method: "GET" },
-      (_req, _next) => {
+      (_req, _next, _info) => {
         // This middleware returns a response directly without calling next()
         return new Response("Short-circuited", { status: 401 });
       },
-      (_req, _params) => {
+      (_req, _params, _info) => {
         handlerCalled.flag = true;
         return new Response("This should not be reached");
       }
@@ -133,8 +143,8 @@ Deno.test("Router - Middleware Execution", async (t) => {
     const routeResult = shortCircuitRouter.currentRoute(req);
     assertExists(routeResult);
 
-    const finalHandler = () => routeResult.route.callback(req, routeResult.params);
-    const response = await shortCircuitRouter['executeMiddlewares'](req, routeResult.route.middlewares, finalHandler, routeResult.route);
+    const finalHandler = () => routeResult.route.callback(req, routeResult.params, mockInfo);
+    const response = await shortCircuitRouter['executeMiddlewares'](req, routeResult.route.middlewares, finalHandler, mockInfo, routeResult.route);
 
     assertEquals(await response.text(), "Short-circuited");
     assertEquals(response.status, 401);

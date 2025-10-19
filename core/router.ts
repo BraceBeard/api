@@ -4,11 +4,13 @@ import { removeTrailingSlash } from "./shared/utils.ts";
 type RouteHandler = (
   req: Request,
   params: Record<string, string | undefined>,
+  info: Deno.ServeHandlerInfo,
 ) => Response | Promise<Response>;
 
 type Middleware = (
   req: Request,
   next: () => Promise<Response>,
+  info: Deno.ServeHandlerInfo,
   route?: Route,
 ) => Response | Promise<Response>;
 
@@ -127,7 +129,10 @@ export class Router {
   /**
    * Main request handler
    */
-  handler = async (req: Request): Promise<Response> => {
+  handler = async (
+    req: Request,
+    info: Deno.ServeHandlerInfo,
+  ): Promise<Response> => {
     const startTime = performance.now();
 
     try {
@@ -140,12 +145,13 @@ export class Router {
           ...routeMiddlewares,
         ];
         const finalHandler = () =>
-          routeResult.route.callback(req, routeResult.params);
+          routeResult.route.callback(req, routeResult.params, info);
 
         const response = await this.executeMiddlewares(
           req,
           allMiddlewares,
           finalHandler,
+          info,
           routeResult.route,
         );
 
@@ -189,7 +195,7 @@ export class Router {
     );
     Deno.serve(
       { port: this.config.port, hostname: this.config.hostname },
-      this.handler,
+      (req, info) => this.handler(req, info),
     );
   }
 
@@ -206,6 +212,7 @@ export class Router {
     req: Request,
     middlewares: Middleware[],
     finalHandler: () => Response | Promise<Response>,
+    info: Deno.ServeHandlerInfo,
     route: Route,
   ): Promise<Response> {
     if (middlewares.length === 0) {
@@ -217,7 +224,7 @@ export class Router {
     const next = async (): Promise<Response> => {
       if (index < middlewares.length) {
         const middleware = middlewares[index++];
-        return await middleware(req, next, route);
+        return await middleware(req, next, info, route);
       }
       return await finalHandler();
     };

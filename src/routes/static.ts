@@ -1,7 +1,11 @@
 import { router } from "../../core/shared/index.ts";
 import { serveDir } from "@std/http/file-server";
 
-export const handler = (req: Request) => {
+export async function staticFileHandler(
+  req: Request,
+  _params: Record<string, string | undefined>,
+  _info: Deno.ServeHandlerInfo,
+): Promise<Response> {
   const url = new URL(req.url);
   
   // Only process requests that start with /assets
@@ -30,7 +34,7 @@ export const handler = (req: Request) => {
 
 
 // Register the static route for GET and HEAD requests
-router.route({ pathname: "/assets/*", method: "GET" }, handler);
-router.route({ pathname: "/assets/*", method: "HEAD" }, handler);
+router.route({ pathname: "/assets/*", method: "GET" }, staticFileHandler);
+router.route({ pathname: "/assets/*", method: "HEAD" }, staticFileHandler);
 
 console.log("✅ Static file routes configured for /assets/*");
