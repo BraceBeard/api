@@ -1,18 +1,26 @@
-import { isIPv4, isIPv6, matchSubnets } from "@std/net/unstable-ip";
+import ipaddr from "ipaddr.js";
+
+// Define a union type for the trusted proxies array.
+type TrustedProxy = (ipaddr.IPv4 | ipaddr.IPv6) | [ipaddr.IPv4 | ipaddr.IPv6, number];
 
 // Read and parse the trusted proxies from environment variables.
 const trustedProxyStr = Deno.env.get("TRUSTED_PROXIES") || "";
-const trustedProxies = new Set<string>();
+const trustedProxies: TrustedProxy[] = [];
 
 trustedProxyStr.split(',').forEach(entry => {
   const trimmedEntry = entry.trim();
   if (!trimmedEntry) return;
 
-  // Basic validation for IP or CIDR format.
-  if (isIPv4(trimmedEntry) || isIPv6(trimmedEntry) || trimmedEntry.includes('/')) {
-    trustedProxies.add(trimmedEntry);
-  } else {
-    console.warn(`Invalid entry in TRUSTED_PROXIES ignored: ${trimmedEntry}`);
+  try {
+    if (ipaddr.isValid(trimmedEntry)) {
+      trustedProxies.push(ipaddr.parse(trimmedEntry));
+    } else if (ipaddr.isValidCIDR(trimmedEntry)) {
+      trustedProxies.push(ipaddr.parseCIDR(trimmedEntry));
+    } else {
+      console.warn(`Invalid entry in TRUSTED_PROXIES ignored: ${trimmedEntry}`);
+    }
+  } catch (e) {
+    console.warn(`Error parsing entry in TRUSTED_PROXIES: ${trimmedEntry}`, e);
   }
 });
 
@@ -22,8 +30,19 @@ trustedProxyStr.split(',').forEach(entry => {
  * @returns True if the IP is trusted, false otherwise.
  */
 function isIpTrusted(ip: string): boolean {
-  if (!isIPv4(ip) && !isIPv6(ip)) return false;
-  return matchSubnets(ip, Array.from(trustedProxies));
+  if (!ipaddr.isValid(ip)) return false;
+  const addr = ipaddr.parse(ip);
+
+  return trustedProxies.some(trusted => {
+    if (Array.isArray(trusted)) {
+      // Handle CIDR ranges: [ipaddr.IPv4|ipaddr.IPv6, number]
+      return addr.match(trusted);
+    } else {
+      // Handle single IPs: ipaddr.IPv4|ipaddr.IPv6
+      const prefix = trusted.kind() === 'ipv4' ? 32 : 128;
+      return addr.match([trusted, prefix]);
+    }
+  });
 }
 
 /**
@@ -37,7 +56,7 @@ export function getClientIp(req: Request): string | undefined {
   const xffHeader = req.headers.get('x-forwarded-for');
 
   // If no trusted proxies are configured, do not trust the X-Forwarded-For header.
-  if (trustedProxies.size === 0) {
+  if (trustedProxies.length === 0) {
     if (xffHeader) {
       console.warn(
         'X-Forwarded-For header is present but no trusted proxies are configured. ' +
