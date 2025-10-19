@@ -5,6 +5,7 @@ import { kv, router } from "../../../../core/shared/index.ts";
 import { Keys } from "../data/user.data.ts";
 import { jwtKey } from "../../../core/jwt.ts";
 import { rateLimiter } from "../../../../core/rate-limit.ts";
+import { getClientIp } from "../../../../core/ip-helper.ts";
 
 /**
  * Agrega un usuario a la base de datos.
@@ -100,6 +101,6 @@ router.route(
     pathname: "/users/add",
     method: "POST",
   },
-  rateLimiter((req) => req.headers.get("x-forwarded-for") ?? undefined),
+  rateLimiter(getClientIp),
   UserAddRouteHandler,
 );
