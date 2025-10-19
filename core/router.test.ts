@@ -78,7 +78,7 @@ Deno.test("Router - Middleware Execution", async (t) => {
   // Route-specific middlewares and handler
   router.route(
     { pathname: "/middleware-test", method: "GET" },
-    async (req, next) => {
+    async (_req, next) => {
       executionOrder.push("route-specific1");
       const response = await next();
       executionOrder.push("route-specific1-after");
@@ -102,7 +102,7 @@ Deno.test("Router - Middleware Execution", async (t) => {
     ];
 
     const finalHandler = () => routeResult.route.callback(req, routeResult.params);
-    await router['executeMiddlewares'](req, allMiddlewares, finalHandler);
+    await router['executeMiddlewares'](req, allMiddlewares, finalHandler, routeResult.route);
 
     assertEquals(executionOrder, [
       "global1",
@@ -134,7 +134,7 @@ Deno.test("Router - Middleware Execution", async (t) => {
     assertExists(routeResult);
 
     const finalHandler = () => routeResult.route.callback(req, routeResult.params);
-    const response = await shortCircuitRouter['executeMiddlewares'](req, routeResult.route.middlewares, finalHandler);
+    const response = await shortCircuitRouter['executeMiddlewares'](req, routeResult.route.middlewares, finalHandler, routeResult.route);
 
     assertEquals(await response.text(), "Short-circuited");
     assertEquals(response.status, 401);

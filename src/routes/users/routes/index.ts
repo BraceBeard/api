@@ -33,7 +33,14 @@ export async function UsersRouteHandler(
     }
 
     const url = new URL(req.url);
-    const limit = parseInt(url.searchParams.get("limit") || "10");
+    const limitParam = url.searchParams.get("limit");
+    let limit = 10;
+    if (limitParam) {
+      limit = parseInt(limitParam);
+      if (isNaN(limit) || limit < 1 || limit > 100) {
+        return new Response(JSON.stringify({ error: "El parámetro 'limit' debe ser un número entre 1 y 100" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      }
+    }
     const cursor = url.searchParams.get("cursor") || undefined;
 
     const list: User[] = [];

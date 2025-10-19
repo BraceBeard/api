@@ -9,6 +9,7 @@ type RouteHandler = (
 type Middleware = (
   req: Request,
   next: () => Promise<Response>,
+  route?: Route,
 ) => Response | Promise<Response>;
 
 interface Route {
@@ -16,6 +17,7 @@ interface Route {
   pattern: URLPattern;
   callback: RouteHandler;
   middlewares: Middleware[];
+  public?: boolean;
 }
 
 interface RouterConfig {
@@ -47,7 +49,7 @@ export class Router {
    * @param handlers - One or more middlewares followed by the final handler
    */
   route(
-    data: string | { pathname: string; method: HttpMethod | string },
+    data: string | { pathname: string; method: HttpMethod | string; public?: boolean },
     ...handlers: [...Middleware[], RouteHandler]
   ) {
     // Validate that at least one handler is provided
@@ -58,12 +60,14 @@ export class Router {
     // Parse method and pathname
     let method: string = "GET";
     let pathname: string;
+    let isPublic: boolean | undefined;
 
     if (typeof data === "string") {
       pathname = data;
     } else {
       method = (data.method || "GET").toUpperCase();
       pathname = data.pathname;
+      isPublic = data.public;
     }
 
     // Validate pathname
@@ -89,6 +93,7 @@ export class Router {
       pattern,
       callback,
       middlewares,
+      public: isPublic,
     });
   }
 
@@ -145,6 +150,7 @@ export class Router {
           req,
           allMiddlewares,
           finalHandler,
+          routeResult.route,
         );
 
         // Log request if enabled
@@ -204,6 +210,7 @@ export class Router {
     req: Request,
     middlewares: Middleware[],
     finalHandler: () => Response | Promise<Response>,
+    route: Route,
   ): Promise<Response> {
     if (middlewares.length === 0) {
       return await finalHandler();
@@ -214,7 +221,7 @@ export class Router {
     const next = async (): Promise<Response> => {
       if (index < middlewares.length) {
         const middleware = middlewares[index++];
-        return await middleware(req, next);
+        return await middleware(req, next, route);
       }
       return await finalHandler();
     };
@@ -248,4 +255,4 @@ export class Router {
 }
 
 // Export types for external use
-export type { RouteHandler, Middleware, RouterConfig, HttpMethod };
+export type { Route, RouteHandler, Middleware, RouterConfig, HttpMethod };

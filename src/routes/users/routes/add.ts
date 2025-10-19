@@ -114,6 +114,7 @@ router.route(
   {
     pathname: "/users/add",
     method: "POST",
+    public: true,
   },
   authMiddleware,
   UserAddRouteHandler,
