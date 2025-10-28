@@ -1,0 +1,22 @@
+meta {
+  name: Add user
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{BASE_URL}}/users/add
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  name: Prueba
+  email: prueba@proton.me
+  password: @dm1n!
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,20 @@
+meta {
+  name: Users
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{BASE_URL}}/users
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwMUs4UEVFM0VOVDdZUDVON0FEQjYxWTJRWSIsImV4cCI6MTc2MTY5MzUzMX0.GexOwuC9wk0sud8gq-HjpiZhLjC60QvkATPFOjKM3VY
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
