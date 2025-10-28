@@ -1,9 +1,8 @@
-import { ulid } from "@std/ulid/ulid";
+import { ulid } from "@std/ulid";
 import { kv } from "../core/shared/index.ts";
 import { Keys } from "../src/routes/users/data/user.data.ts";
 import { generateUserToken } from "../core/jwt-utils.ts";
 import { load } from "@std/dotenv";
-import { hash } from "@bcrypt";
 
 const env = await load();
 
@@ -28,12 +27,18 @@ async function createFirstUser() {
     }
 
     if (!adminPassword) {
-      console.warn("ADMIN_PASSWORD not set. Generating a secure random password.");
+      console.warn(
+        "ADMIN_PASSWORD not set. Generating a secure random password.",
+      );
       adminPassword = crypto.randomUUID(); // Generates a secure random password
       console.log(`Generated Password: ${adminPassword}`);
     }
 
-    const hashedPassword = await hash(adminPassword);
+    const passwordBuffer = new TextEncoder().encode(adminPassword);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", passwordBuffer);
+    const hashedPassword = Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
 
     const data = {
       name: adminName,
@@ -44,7 +49,7 @@ async function createFirstUser() {
 
     const id = ulid();
 
-    const res = await kv.atomic()
+    const res = await kv!.atomic()
       .check({ key: [Keys.USERS_BY_EMAIL, data.email], versionstamp: null })
       .set([Keys.USERS, id], { id, ...data })
       .set([Keys.USERS_BY_EMAIL, data.email], id)
@@ -60,7 +65,7 @@ async function createFirstUser() {
 
     console.log("Token:", jwt);
   } catch (error) {
-    console.error("Error al crear el primer usuario:", error);
+    console.error("Error creating the first user:", error);
   }
 }
 
