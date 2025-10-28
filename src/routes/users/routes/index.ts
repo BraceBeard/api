@@ -44,7 +44,7 @@ export async function UsersRouteHandler(
       }
     }
 
-    const userEntries = kv.list<User>({ prefix: [Keys.USERS] }, { limit, cursor });
+    const userEntries = kv!.list<User>({ prefix: [Keys.USERS] }, { limit, cursor });
     const users = [];
     for await (const entry of userEntries) {
       users.push(sanitizeUser(entry.value));

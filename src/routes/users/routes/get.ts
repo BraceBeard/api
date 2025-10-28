@@ -35,7 +35,7 @@ export async function UserGetRouteHandler(
     }
 
     // Fetch the requested user from the database.
-    const userEntry = await kv.get<User>([Keys.USERS, id]);
+    const userEntry = await kv!.get<User>([Keys.USERS, id]);
     if (!userEntry?.value) {
       return new Response(JSON.stringify({ error: "Usuario no encontrado" }), {
         status: 404,

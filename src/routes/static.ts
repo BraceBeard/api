@@ -25,7 +25,7 @@ export async function staticFileHandler(
     headers: req.headers,
   });
 
-  return serveDir(newReq, {
+  return await serveDir(newReq, {
     fsRoot: "src/public",
     urlRoot: "", 
   });

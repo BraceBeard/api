@@ -5,7 +5,6 @@ import { Keys } from "../data/user.data.ts";
 import { generateUserToken } from "@/core/jwt-utils.ts";
 import { rateLimiter } from "@/core/rate-limit.ts";
 import { getClientIp } from "@/core/ip-helper.ts";
-import * as bcrypt from "@bcrypt";
 
 /**
  * Agrega un usuario a la base de datos.
@@ -60,17 +59,21 @@ export async function UserAddRouteHandler(
       );
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordBuffer = new TextEncoder().encode(password);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", passwordBuffer);
+    const hashedPassword = Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
 
     const data: User = {
       id,
       name,
       email,
       role: "user",
-      password: passwordHash,
+      password: hashedPassword,
     };
 
-    const res = await kv.atomic()
+    const res = await kv!.atomic()
       // Check if the email is already in use
       .check({ key: [Keys.USERS_BY_EMAIL, email], versionstamp: null })
       // Create the user and the email index entry

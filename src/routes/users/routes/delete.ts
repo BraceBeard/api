@@ -37,7 +37,7 @@ export async function UserDeleteRouteHandler(
       );
     }
 
-    const userEntry = await kv.get<User>([Keys.USERS, id]);
+    const userEntry = await kv!.get<User>([Keys.USERS, id]);
     if (!userEntry?.value) {
       return new Response(JSON.stringify({ error: "Usuario no encontrado" }), {
         status: 404,
@@ -48,7 +48,7 @@ export async function UserDeleteRouteHandler(
     const user = userEntry.value;
 
     // Use an atomic operation to ensure both records are deleted.
-    const res = await kv.atomic()
+    const res = await kv!.atomic()
       .delete([Keys.USERS, id])
       .delete([Keys.USERS_BY_EMAIL, user.email])
       .commit();
