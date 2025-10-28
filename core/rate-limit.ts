@@ -7,7 +7,7 @@ const RATE_LIMIT_TTL = RATE_LIMIT_WINDOW_MS + 5000; // 5-second margin
 
 export function rateLimiter(
   getIp: (req: Request, info: Deno.ServeHandlerInfo) => string | undefined,
-  kv: Deno.Kv = defaultKv,
+  kv: Deno.Kv | null = defaultKv,
 ) {
   return async (
     req: Request,
@@ -30,7 +30,7 @@ export function rateLimiter(
 
     try {
       for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        const entry = await kv.get<{ count: number; windowStart: number }>(key);
+        const entry = await kv!.get<{ count: number; windowStart: number }>(key);
         const now = Date.now();
 
         let newCount = 1;
@@ -41,7 +41,7 @@ export function rateLimiter(
           newWindowStart = entry.value.windowStart;
         }
 
-        const result = await kv.atomic()
+        const result = await kv!.atomic()
           .check(entry)
           .set(key, { count: newCount, windowStart: newWindowStart }, { expireIn: RATE_LIMIT_TTL })
           .commit();

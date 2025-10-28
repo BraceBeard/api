@@ -20,7 +20,7 @@ async function runIsolatedTest(env: Record<string, string>, testFn: (limiter: Ra
         await testFn(rateLimiter);
     } finally {
         kv.close();
-        setKv(originalKv);
+        setKv(originalKv!);
     }
 }
 

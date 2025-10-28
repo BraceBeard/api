@@ -14,7 +14,7 @@ export interface AuthenticatedRequest extends Request {
 
 export function createAuthMiddleware(
   dependencies: {
-    kv: Deno.Kv;
+    kv: Deno.Kv | null;
     verify: typeof verify;
   }
 ) {
@@ -62,7 +62,7 @@ export function createAuthMiddleware(
       );
     }
 
-    const userEntry = await dependencies.kv.get<AuthUser>([Keys.USERS, userId]);
+    const userEntry = await dependencies.kv!.get<AuthUser>([Keys.USERS, userId]);
     const user = userEntry?.value;
 
     if (!user) {
