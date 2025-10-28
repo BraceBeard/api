@@ -19,7 +19,7 @@ export async function UsersRouteHandler(
     if (authenticatedUser.role !== "admin") {
       return new Response(
         JSON.stringify({
-          error: "No tienes permiso para realizar esta acción",
+          error: "You do not have permission to perform this action",
         }),
         {
           status: 403,
@@ -37,7 +37,7 @@ export async function UsersRouteHandler(
       if (isNaN(limit) || limit < 1 || limit > 100) {
         return new Response(
           JSON.stringify({
-            error: "El parámetro 'limit' debe ser un número entre 1 y 100",
+            error: "The 'limit' parameter must be a number between 1 and 100",
           }),
           { status: 400, headers: { "Content-Type": "application/json" } },
         );
@@ -56,7 +56,7 @@ export async function UsersRouteHandler(
   } catch (e) {
     console.error(e);
     return new Response(
-      JSON.stringify({ error: "Error al obtener los usuarios" }),
+      JSON.stringify({ error: "An error occurred while getting the users" }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }

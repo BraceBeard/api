@@ -30,7 +30,7 @@ export async function UserAddRouteHandler(
     ) {
       return new Response(
         JSON.stringify({
-          error: "Nombre, correo electrónico y contraseña deben ser texto",
+          error: "Name, email and password must be text",
         }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
@@ -44,7 +44,7 @@ export async function UserAddRouteHandler(
     if (!name || !email || !password) {
       return new Response(
         JSON.stringify({
-          error: "Nombre, correo electrónico y contraseña son obligatorios",
+          error: "Name, email and password are required",
         }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
@@ -54,7 +54,7 @@ export async function UserAddRouteHandler(
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return new Response(
-        JSON.stringify({ error: "Formato de correo electrónico inválido" }),
+        JSON.stringify({ error: "Invalid email format" }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
@@ -83,7 +83,7 @@ export async function UserAddRouteHandler(
 
     if (!res.ok) {
       return new Response(
-        JSON.stringify({ error: "El correo electrónico ya está registrado" }),
+        JSON.stringify({ error: "Email already in use" }),
         {
           status: 409,
           headers: { "Content-Type": "application/json" },
@@ -101,7 +101,7 @@ export async function UserAddRouteHandler(
   } catch (e) {
     console.error(e);
     return new Response(
-      JSON.stringify({ error: "Error al agregar el usuario" }),
+      JSON.stringify({ error: "An error occurred while adding the user" }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }

@@ -15,7 +15,7 @@ export async function UserGetRouteHandler(
   try {
     const id = params.id;
     if (!id) {
-      return new Response(JSON.stringify({ error: "ID de usuario faltante" }), {
+      return new Response(JSON.stringify({ error: "Missing 'id' parameter" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
@@ -26,7 +26,7 @@ export async function UserGetRouteHandler(
     // Check if the authenticated user has permission to view the requested user's data.
     if (authenticatedUser.role !== "admin" && authenticatedUser.id !== id) {
       return new Response(
-        JSON.stringify({ error: "No tienes permiso para realizar esta acción" }),
+        JSON.stringify({ error: "You do not have permission to perform this action" }),
         {
           status: 403,
           headers: { "Content-Type": "application/json" },
@@ -37,7 +37,7 @@ export async function UserGetRouteHandler(
     // Fetch the requested user from the database.
     const userEntry = await kv!.get<User>([Keys.USERS, id]);
     if (!userEntry?.value) {
-      return new Response(JSON.stringify({ error: "Usuario no encontrado" }), {
+      return new Response(JSON.stringify({ error: "User not found" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
@@ -51,7 +51,7 @@ export async function UserGetRouteHandler(
   } catch (e) {
     console.error(e);
     return new Response(
-      JSON.stringify({ error: "Error al obtener el usuario" }),
+      JSON.stringify({ error: "An error occurred while getting the user" }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }

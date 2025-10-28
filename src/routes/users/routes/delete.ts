@@ -15,7 +15,7 @@ export async function UserDeleteRouteHandler(
     const id = params.id;
     if (!id) {
       return new Response(
-        JSON.stringify({ error: "Parámetro 'id' faltante" }),
+        JSON.stringify({ error: "Missing 'id' parameter" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -28,7 +28,7 @@ export async function UserDeleteRouteHandler(
     if (authenticatedUser.role !== "admin" && authenticatedUser.id !== id) {
       return new Response(
         JSON.stringify({
-          error: "No tienes permiso para realizar esta acción",
+          error: "You do not have permission to perform this action",
         }),
         {
           status: 403,
@@ -39,7 +39,7 @@ export async function UserDeleteRouteHandler(
 
     const userEntry = await kv!.get<User>([Keys.USERS, id]);
     if (!userEntry?.value) {
-      return new Response(JSON.stringify({ error: "Usuario no encontrado" }), {
+      return new Response(JSON.stringify({ error: "User not found" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
@@ -55,7 +55,7 @@ export async function UserDeleteRouteHandler(
 
     if (!res.ok) {
       return new Response(
-        JSON.stringify({ error: "Error al eliminar el usuario" }),
+        JSON.stringify({ error: "An error occurred while deleting the user" }),
         {
           status: 500,
           headers: { "Content-Type": "application/json" },
@@ -65,7 +65,7 @@ export async function UserDeleteRouteHandler(
 
     return new Response(
       JSON.stringify({
-        message: "Usuario eliminado correctamente",
+        message: "User deleted successfully",
       }),
       {
         headers: { "Content-Type": "application/json" },
@@ -74,7 +74,7 @@ export async function UserDeleteRouteHandler(
   } catch (e) {
     console.error(e);
     return new Response(
-      JSON.stringify({ error: "Error al eliminar el usuario" }),
+      JSON.stringify({ error: "An error occurred while deleting the user" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
