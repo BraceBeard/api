@@ -6,3 +6,6 @@
 
 # Dependencies
 node_modules/
+
+# Notes
+.notes.md
