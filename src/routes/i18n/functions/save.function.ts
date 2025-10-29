@@ -1,7 +1,7 @@
 import { getByCode } from "../../languages/functions/get.ts";
 import { translate } from "./translate.function.ts";
 
-export const save = async (text: string, fromCode: string, toCode: string) => {
+export const save = async (text: string, fromCode: string, toCode: string, dictionary: string) => {
   const from = await getByCode(fromCode);
   const to = await getByCode(toCode);
 
@@ -18,7 +18,7 @@ export const save = async (text: string, fromCode: string, toCode: string) => {
   }
 
   try {
-    return await translate(text.trim(), fromCode, toCode);
+    return await translate(text.trim(), fromCode, toCode, dictionary);
   } catch (_) {
     return null;
   }

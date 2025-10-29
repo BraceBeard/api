@@ -1,5 +1,5 @@
 import { router } from "../../../core/shared/index.ts";
-import { authMiddleware } from "../../../core/auth.ts";
+import { AuthenticatedRequest, authMiddleware } from "../../../core/auth.ts";
 import { getByCode } from "../languages/functions/get.ts";
 import { save } from "./functions/save.function.ts";
 
@@ -9,12 +9,20 @@ router.route(
     method: "POST",
   },
   authMiddleware,
-  async (req) => {
+  async (req: AuthenticatedRequest) => {
+    if (!req.user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
     try {
       const formData = await req.formData();
       const fromCode = formData.get("from");
       const toCode = formData.get("to");
       const text = formData.get("text");
+      const dictionary = formData.get("dictionary") as string | null || req.user.id;
 
       if (!fromCode || !toCode || !text) {
         return new Response(
@@ -55,7 +63,7 @@ router.route(
         );
       }
 
-      const translate = await save(text, fromCode, toCode);
+      const translate = await save(text, fromCode, toCode, dictionary);
 
       if (!translate) {
         return new Response(

@@ -9,7 +9,9 @@ export const translate = async (
   text: string,
   fromCode: string,
   toCode: string,
+  dictionary: string,
 ) => {
+  let translated = text.trim();
   const from = await getByCode(fromCode);
   const to = await getByCode(toCode);
 
@@ -22,7 +24,7 @@ export const translate = async (
   }
 
   const hashed = hash(
-    `${fromCode}-${toCode}-${normalize(text, fromCode)}`,
+    `${dictionary}-${fromCode}-${toCode}-${normalize(text, fromCode)}`,
     fromCode,
   );
 
@@ -36,17 +38,17 @@ export const translate = async (
       return fromDictionary.value;
     }
 
-    const translated = await generateTextToTextSync({
+    translated = await generateTextToTextSync({
       messages: [
         {
           role: "system",
           content:
-            `You are a skilled translator from '${from.name}' to English.`,
+            `You are a skilled translator from '${from.name}' to '${to.name}'.`,
         },
         {
           role: "user",
           content:
-            `Please respond with the translation to English of '${text.trim()}', without adding any extra content.`,
+            `Please only respond with the translation to English of '${text.trim()}', without adding any extra content.`,
         },
       ],
       model: "qwen-3-32b",
@@ -54,42 +56,54 @@ export const translate = async (
       baseURL: "https://api.cerebras.ai/v1",
       apiKey: Deno.env.get("CEREBRAS_API_KEY"),
     });
-
-    await kv!.set([Keys.TRANSLATIONS, hashed], translated);
-    const hashedTo = hash(
-      `${toCode}-${fromCode}-${normalize(translated, toCode)}`,
-      toCode,
-    );
-    await kv!.set([Keys.TRANSLATIONS, hashedTo], text);
-
-    return translated;
   } catch (_) {
-    const translated = await generateTextToTextSync({
-      messages: [
-        {
-          role: "system",
-          content:
-            `You are a skilled translator from '${from.name}' to English.`,
-        },
-        {
-          role: "user",
-          content:
-            `Please respond with the translation to English of '${text.trim()}', without adding any extra content.`,
-        },
-      ],
-      model: "glm-4.6",
-    }, {
-      baseURL: "https://ollama.com/v1",
-      apiKey: Deno.env.get("OLLAMA_API_KEY"),
-    });
-
-    await kv!.set([Keys.TRANSLATIONS, hashed], translated);
-    const hashedTo = hash(
-      `${toCode}-${fromCode}-${normalize(translated, toCode)}`,
-      toCode,
-    );
-    await kv!.set([Keys.TRANSLATIONS, hashedTo], text);
-
-    return translated;
+    try {
+      translated = await generateTextToTextSync({
+        messages: [
+          {
+            role: "system",
+            content:
+              `You are a skilled translator from '${from.name}' to '${to.name}'.`,
+          },
+          {
+            role: "user",
+            content:
+              `Please only respond with the translation to '${to.name}' of '${text.trim()}', without adding any extra content.`,
+          },
+        ],
+        model: "google/gemma-3-27b-it:nebius",
+      }, {
+        baseURL: "https://router.huggingface.co/v1",
+        apiKey: Deno.env.get("HF_TOKEN"),
+      });
+    } catch (_) {
+      translated = await generateTextToTextSync({
+        messages: [
+          {
+            role: "system",
+            content:
+              `You are a skilled translator from '${from.name}' to '${to.name}'.`,
+          },
+          {
+            role: "user",
+            content:
+              `Please only respond with the translation to '${to.name}' of '${text.trim()}', without adding any extra content.`,
+          },
+        ],
+        model: "minimax-m2",
+      }, {
+        baseURL: "https://ollama.com/v1",
+        apiKey: Deno.env.get("OLLAMA_API_KEY"),
+      });
+    }
   }
+
+  await kv!.set([Keys.TRANSLATIONS, hashed], translated);
+  const hashedTo = hash(
+    `${dictionary}-${toCode}-${fromCode}-${normalize(translated, toCode)}`,
+    toCode,
+  );
+  await kv!.set([Keys.TRANSLATIONS, hashedTo], text);
+
+  return translated;
 };
