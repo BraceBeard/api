@@ -1,0 +1,26 @@
+meta {
+  name: Translate
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}/i18n
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{TOKEN}}
+}
+
+body:multipart-form {
+  from: es
+  to: en
+  text: Hola
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

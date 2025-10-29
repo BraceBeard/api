@@ -2,6 +2,8 @@
   "nodeModulesDir": "auto",
   "imports": {
     "@/": "./",
+    "@noble/hashes": "jsr:@noble/hashes@^2.0.1",
+    "@openai/openai": "jsr:@openai/openai@^6.7.0",
     "@std/fs": "jsr:@std/fs@^1.0.19",
     "@std/media-types": "jsr:@std/media-types@^1.1.0",
     "@std/net": "jsr:@std/net@^1.0.6",
