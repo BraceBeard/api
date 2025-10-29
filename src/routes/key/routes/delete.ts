@@ -3,6 +3,7 @@ import { authMiddleware } from "../../../../core/auth.ts";
 import { AuthenticatedRequest } from "../../../../core/auth.ts";
 import { kv } from "../../../../core/shared/index.ts";
 import { Keys } from "../../../../src/routes/users/data/user.data.ts";
+import { KeyModel } from "../models/key.model.ts";
 
 router.route({
   pathname: "/key",
@@ -29,14 +30,7 @@ router.route({
         status: 404,
       });
     }
-    const key = await kv!.get<{
-      id: string;
-      key: string;
-      userId: string;
-      expiresAt: string | null;
-      createdAt: string;
-      isActive: boolean;
-    }>([Keys.KEYS, keyUserData.id]);
+    const key = await kv!.get<KeyModel>([Keys.KEYS, keyUserData.id]);
     const keyData = key.value;
     if (!keyData) {
       return new Response(JSON.stringify({ error: "Key not found" }), {

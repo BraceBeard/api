@@ -2,6 +2,7 @@ import { AuthenticatedRequest, authMiddleware } from "../../../../core/auth.ts";
 import { router } from "../../../../core/shared/index.ts";
 import { kv } from "../../../../core/shared/index.ts";
 import { Keys } from "../../../../src/routes/users/data/user.data.ts";
+import { KeyModel } from "../models/key.model.ts";
 
 const keyRouteHandler = async (
   req: AuthenticatedRequest,
@@ -17,14 +18,7 @@ const keyRouteHandler = async (
       });
     }
 
-    const keyUser = await kv!.get<{
-      id: string;
-      key: string;
-      userId: string;
-      expiresAt: string | null;
-      createdAt: string;
-      isActive: boolean;
-    }>([Keys.KEYS_BY_USER, userId]);
+    const keyUser = await kv!.get<KeyModel>([Keys.KEYS_BY_USER, userId]);
     const keyUserData = keyUser.value;
     if (!keyUserData) {
       return new Response(JSON.stringify({ error: "Key not found" }), {

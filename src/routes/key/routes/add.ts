@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from "../../../../core/auth.ts";
 import { kv } from "../../../../core/shared/index.ts";
 import { Keys } from "../../../../src/routes/users/data/user.data.ts";
 import { ulid } from "@std/ulid/ulid";
+import { KeyModel } from "../models/key.model.ts";
 
 router.route(
   {
@@ -31,7 +32,7 @@ router.route(
 
       const key = crypto.randomUUID();
       const keyId = ulid();
-      const keyData = {
+      const keyData: KeyModel = {
         id: keyId,
         key,
         userId,
