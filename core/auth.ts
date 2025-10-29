@@ -81,6 +81,26 @@ export function createAuthMiddleware(
       }
 
       const keyData = keyEntry.value;
+
+      if (!keyData.isActive) {
+        return new Response(
+          JSON.stringify({ error: "Key is not active" }),
+          {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+      if (keyData.expiresAt && new Date(keyData.expiresAt) < new Date()) {
+        return new Response(
+          JSON.stringify({ error: "Key has expired" }),
+          {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
       const userId = keyData.userId;
       const userEntry = await dependencies.kv!.get<AuthUser>([
         Keys.USERS,
