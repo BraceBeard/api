@@ -13,6 +13,7 @@ import "./routes/users/routes/login.ts";
 import "./routes/languages/routes/index.ts";
 import "./routes/languages/routes/add.ts";
 import "./routes/languages/routes/get.ts";
+import "./routes/languages/routes/delete.ts";
 
 // Import fallback route last
 import { fallbackHandler } from "./routes/fallback.ts";
