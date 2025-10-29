@@ -1,7 +1,7 @@
 import { ulid } from "@std/ulid/ulid";
 import { AuthenticatedRequest, authMiddleware } from "../../../../core/auth.ts";
-import { kv, router } from "../../../../core/shared/index.ts";
-import { Keys } from "../../users/data/user.data.ts";
+import { router } from "../../../../core/shared/index.ts";
+import { add } from "../functions/add.ts";
 
 const languagesRouteHandler = async (
   req: AuthenticatedRequest,
@@ -32,15 +32,11 @@ const languagesRouteHandler = async (
             name,
             code,
         };
-        const res = await kv!.atomic()
-            .check({ key: [Keys.LANGUAGES_BY_CODE, code], versionstamp: null })
-            .set([Keys.LANGUAGES, id], data)
-            .set([Keys.LANGUAGES_BY_CODE, code], id)
-            .commit();
-        if (!res.ok) {
+        const res = await add(data);
+        if (res instanceof Error) {
             return new Response(
-                JSON.stringify({ error: "The code is already in use" }),
-                { status: 409, headers: { "Content-Type": "application/json" } },
+                JSON.stringify({ error: res.message }),
+                { status: 500, headers: { "Content-Type": "application/json" } },
             );
         }
         return new Response(JSON.stringify({ id }), {

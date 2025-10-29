@@ -2,7 +2,7 @@ import { AuthenticatedRequest, authMiddleware } from "../../../../core/auth.ts";
 import { router } from "../../../../core/shared/index.ts";
 import { kv } from "../../../../core/shared/index.ts";
 import { Keys } from "../../users/data/user.data.ts";
-import { Language } from "../models/language.model.ts";
+import { get } from "../functions/get.ts";
 
 const languagesRouteHandler = async (
   req: AuthenticatedRequest,
@@ -40,7 +40,7 @@ const languagesRouteHandler = async (
         { status: 404, headers: { "Content-Type": "application/json" } },
       );
     }
-    const language = await kv!.get<Language>([Keys.LANGUAGES, languageId]);
+    const language = await get(languageId);
     if (!language) {
       return new Response(
         JSON.stringify({ error: "The language was not found" }),
@@ -48,7 +48,7 @@ const languagesRouteHandler = async (
       );
     }
     return new Response(
-      JSON.stringify(language.value),
+      JSON.stringify(language),
       {
         headers: { "Content-Type": "application/json" },
       },
