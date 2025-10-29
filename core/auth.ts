@@ -26,7 +26,7 @@ export function createAuthMiddleware(
   const authHeader = req.headers.get("Authorization");
 
   if (!authHeader) {
-    return new Response(JSON.stringify({ error: "No autorizado" }), {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
@@ -35,14 +35,14 @@ export function createAuthMiddleware(
   const token = authHeader.startsWith("Bearer ") ? authHeader.substring(7).trim() : null;
 
   if (token === null) {
-    return new Response(JSON.stringify({ error: "Formato de token inválido" }), {
+    return new Response(JSON.stringify({ error: "Invalid token format" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
   }
 
   if (!token) {
-    return new Response(JSON.stringify({ error: "Token no proporcionado" }), {
+    return new Response(JSON.stringify({ error: "Token not provided" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
@@ -54,7 +54,7 @@ export function createAuthMiddleware(
 
     if (!userId) {
       return new Response(
-        JSON.stringify({ error: "Token inválido: userId faltante" }),
+        JSON.stringify({ error: "Token invalid: userId missing" }),
         {
           status: 401,
           headers: { "Content-Type": "application/json" },
@@ -67,7 +67,7 @@ export function createAuthMiddleware(
 
     if (!user) {
       return new Response(
-        JSON.stringify({ error: "Usuario no encontrado" }),
+        JSON.stringify({ error: "User not found" }),
         {
           status: 401,
           headers: { "Content-Type": "application/json" },
@@ -79,7 +79,7 @@ export function createAuthMiddleware(
   } catch (error) {
     console.error("Authentication error:", error);
     return new Response(
-      JSON.stringify({ error: "Token inválido o expirado" }),
+      JSON.stringify({ error: "Token invalid or expired" }),
       {
         status: 401,
         headers: { "Content-Type": "application/json" },

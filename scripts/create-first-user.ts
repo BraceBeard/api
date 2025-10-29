@@ -1,7 +1,7 @@
 import { ulid } from "@std/ulid";
 import { kv } from "../core/shared/index.ts";
 import { Keys } from "../src/routes/users/data/user.data.ts";
-import { generateUserToken } from "../core/jwt-utils.ts";
+import { generatePassword, generateUserToken } from "../core/jwt-utils.ts";
 import { load } from "@std/dotenv";
 
 const env = await load();
@@ -34,27 +34,19 @@ async function createFirstUser() {
       console.log(`Generated Password: ${adminPassword}`);
     }
 
-    const passwordBuffer = new TextEncoder().encode(adminPassword);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", passwordBuffer);
-    const hashedPassword = Array.from(new Uint8Array(hashBuffer))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-
+    const hashedPassword = await generatePassword(adminPassword);
     const data = {
       name: adminName,
       email: adminEmail,
       role: adminRole as "admin" | "user",
       password: hashedPassword,
     };
-
     const id = ulid();
-
     const res = await kv!.atomic()
       .check({ key: [Keys.USERS_BY_EMAIL, data.email], versionstamp: null })
       .set([Keys.USERS, id], { id, ...data })
       .set([Keys.USERS_BY_EMAIL, data.email], id)
       .commit();
-
     if (!res.ok) {
       console.error("Failed to create first user. User may already exist.");
       Deno.exit(1);

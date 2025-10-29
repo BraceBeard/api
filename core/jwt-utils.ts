@@ -1,6 +1,15 @@
 import { create } from "@zaubrik/djwt";
 import { jwtKey } from "./jwt.ts";
 
+
+export async function generatePassword(password: string): Promise<string> {
+  const passwordBuffer = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", passwordBuffer);
+  const hashedPassword = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return hashedPassword;
+}
 /**
  * Generates a JWT for a given user ID.
  * @param userId The ID of the user.
