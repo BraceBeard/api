@@ -25,14 +25,25 @@ router.route(
         });
       }
 
-      const key = crypto.randomUUID();
-      const id = ulid();
+      const data = await req.json();
+      // expiresAt is optional, if not provided the key won't expire
+      const expiresAt = data.expiresAt ? new Date(data.expiresAt).toISOString() : null;
 
-      console.log(userId, id);
+      const key = crypto.randomUUID();
+      const keyId = ulid();
+      const keyData = {
+        id: keyId,
+        key,
+        userId,
+        expiresAt,
+        createdAt: new Date().toISOString(),
+        isActive: true
+      };
+
       await kv!.atomic()
-        .set([Keys.KEYS_BY_USER, userId], id)
-        .set([Keys.KEYS, id], key)
-        .set([Keys.KEYS_BY_KEY, key], userId)
+        .set([Keys.KEYS, keyId], keyData)
+        .set([Keys.KEYS_BY_KEY, key], keyId)
+        .set([Keys.KEYS_BY_USER, userId], keyData)
         .commit();
       return new Response(JSON.stringify({ key }));
     } catch (error) {

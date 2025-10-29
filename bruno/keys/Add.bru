@@ -6,12 +6,16 @@ meta {
 
 post {
   url: {{BASE_URL}}/key/add
-  body: none
+  body: json
   auth: bearer
 }
 
 auth:bearer {
   token: {{TOKEN}}
+}
+
+body:json {
+  {}
 }
 
 settings {

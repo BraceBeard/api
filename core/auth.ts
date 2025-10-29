@@ -50,15 +50,38 @@ export function createAuthMiddleware(
     }
 
     try {
-      const keyEntry = await dependencies.kv!.get<string>([
+      const keyOfKeyEntry = await dependencies.kv!.get<string>([
         Keys.KEYS_BY_KEY,
         token,
       ]);
+      if (!keyOfKeyEntry || !keyOfKeyEntry.value) {
+        throw new Error("Key not found");
+      }
+
+      const keyId = keyOfKeyEntry.value;
+
+      if (!keyId) {
+        throw new Error("Key not found");
+      }
+
+      const keyEntry = await dependencies.kv!.get<{
+        id: string;
+        key: string;
+        userId: string;
+        expiresAt: string | null;
+        createdAt: string;
+        isActive: boolean;
+      }>([
+        Keys.KEYS,
+        keyId,
+      ]);
+
       if (!keyEntry || !keyEntry.value) {
         throw new Error("Key not found");
       }
-      const userId = keyEntry.value;
 
+      const keyData = keyEntry.value;
+      const userId = keyData.userId;
       const userEntry = await dependencies.kv!.get<AuthUser>([
         Keys.USERS,
         userId,
@@ -121,7 +144,13 @@ export function createAuthMiddleware(
       }
     }
 
-    return await next();
+    if (req.user) {
+      return await next();
+    }
+    return new Response(JSON.stringify({ error: "Authentication required" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
   };
 }
 

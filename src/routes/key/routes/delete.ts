@@ -15,21 +15,37 @@ router.route({
         status: 404,
       });
     }
-    const keyUser = await kv!.get<string>([Keys.KEYS_BY_USER, userId]);
-    if (!keyUser || !keyUser.value) {
+    const keyUser = await kv!.get<{
+      id: string;
+      key: string;
+      userId: string;
+      expiresAt: string | null;
+      createdAt: string;
+      isActive: boolean;
+    }>([Keys.KEYS_BY_USER, userId]);
+    const keyUserData = keyUser.value;
+    if (!keyUserData) {
       return new Response(JSON.stringify({ error: "Key not found" }), {
         status: 404,
       });
     }
-    const key = await kv!.get<string>([Keys.KEYS, keyUser.value]);
-    if (!key || !key.value) {
+    const key = await kv!.get<{
+      id: string;
+      key: string;
+      userId: string;
+      expiresAt: string | null;
+      createdAt: string;
+      isActive: boolean;
+    }>([Keys.KEYS, keyUserData.id]);
+    const keyData = key.value;
+    if (!keyData) {
       return new Response(JSON.stringify({ error: "Key not found" }), {
         status: 404,
       });
     }
-    await kv!.delete([Keys.KEYS, keyUser.value]);
+    await kv!.delete([Keys.KEYS, keyUserData.id as string]);
     await kv!.delete([Keys.KEYS_BY_USER, userId]);
-    await kv!.delete([Keys.KEYS_BY_KEY, key.value]);
+    await kv!.delete([Keys.KEYS_BY_KEY, keyData.key as string]);
     return new Response(JSON.stringify({ message: "Key deleted successfully" }));
   } catch (error) {
     console.error(error);

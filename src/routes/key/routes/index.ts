@@ -17,14 +17,27 @@ const keyRouteHandler = async (
       });
     }
 
-    const keyUser = await kv!.get<string>([Keys.KEYS_BY_USER, userId]);
-    if (!keyUser || !keyUser.value) {
+    const keyUser = await kv!.get<{
+      id: string;
+      key: string;
+      userId: string;
+      expiresAt: string | null;
+      createdAt: string;
+      isActive: boolean;
+    }>([Keys.KEYS_BY_USER, userId]);
+    const keyUserData = keyUser.value;
+    if (!keyUserData) {
       return new Response(JSON.stringify({ error: "Key not found" }), {
         status: 404,
       });
     }
-    const key = await kv!.get<string>([Keys.KEYS, keyUser.value]);
-    return new Response(JSON.stringify({ key: key.value }));
+    const key = await kv!.get<string>([Keys.KEYS, keyUserData.id]);
+    if (!key || !key.value) {
+      return new Response(JSON.stringify({ error: "Key not found" }), {
+        status: 404,
+      });
+    }
+    return new Response(JSON.stringify(key.value));
   } catch (error) {
     console.error(error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
