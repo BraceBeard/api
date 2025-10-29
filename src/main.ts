@@ -9,6 +9,10 @@ import "./routes/users/routes/index.ts";
 import "./routes/users/routes/add.ts";
 import "./routes/users/routes/delete.ts";
 import "./routes/users/routes/get.ts";
+import "./routes/users/routes/login.ts";
+import "./routes/languages/routes/index.ts";
+import "./routes/languages/routes/add.ts";
+import "./routes/languages/routes/get.ts";
 
 // Import fallback route last
 import { fallbackHandler } from "./routes/fallback.ts";

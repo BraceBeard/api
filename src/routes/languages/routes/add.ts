@@ -1,0 +1,63 @@
+import { ulid } from "@std/ulid/ulid";
+import { AuthenticatedRequest, authMiddleware } from "../../../../core/auth.ts";
+import { kv, router } from "../../../../core/shared/index.ts";
+import { Keys } from "../../users/data/user.data.ts";
+
+const languagesRouteHandler = async (
+  req: AuthenticatedRequest,
+  _params: Record<string, string | undefined>,
+  _info: Deno.ServeHandlerInfo,
+): Promise<Response> => {
+    try {
+        const formData = await req.formData();
+        const nameValue = formData.get("name") as string | null;
+        if (!nameValue || nameValue.trim() === "") {
+            return new Response(
+                JSON.stringify({ error: "The name is required" }),
+                { status: 400, headers: { "Content-Type": "application/json" } },
+            );
+        }
+        const codeValue = formData.get("code") as string | null;
+        if (!codeValue || codeValue.trim() === "") {
+            return new Response(
+                JSON.stringify({ error: "The code is required" }),
+                { status: 400, headers: { "Content-Type": "application/json" } },
+            );
+        }
+        const name = nameValue.trim();
+        const code = codeValue.trim();
+        const id = ulid();
+        const data = {
+            id,
+            name,
+            code,
+        };
+        const res = await kv!.atomic()
+            .check({ key: [Keys.LANGUAGES_BY_CODE, code], versionstamp: null })
+            .set([Keys.LANGUAGES, id], data)
+            .set([Keys.LANGUAGES_BY_CODE, code], id)
+            .commit();
+        if (!res.ok) {
+            return new Response(
+                JSON.stringify({ error: "The code is already in use" }),
+                { status: 409, headers: { "Content-Type": "application/json" } },
+            );
+        }
+        return new Response(JSON.stringify({ id }), {
+            status: 201,
+            headers: { "Content-Type": "application/json" },
+        });
+    } catch (e) {
+        console.error(e);
+        return new Response(
+            JSON.stringify({ error: "An error occurred while adding the language" }),
+            { status: 500, headers: { "Content-Type": "application/json" } },
+        );
+    }
+};
+
+router.route(
+  { pathname: "/languages/add", method: "POST" },
+  authMiddleware,
+  languagesRouteHandler,
+);
