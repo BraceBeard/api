@@ -48,55 +48,100 @@ export const translate = async (
         {
           role: "user",
           content:
-            `Please only respond with the translation to English of '${text.trim()}', without adding any extra content.`,
+            `Please only respond with the translation to '${to.name}' of '${text.trim()}', without adding any extra content.`,
         },
       ],
-      model: "qwen-3-32b",
-    }, {
-      baseURL: "https://api.cerebras.ai/v1",
-      apiKey: Deno.env.get("CEREBRAS_API_KEY"),
+      model: "qwen3:0.6b",
     });
   } catch (_) {
-    try {
-      translated = await generateTextToTextSync({
-        messages: [
-          {
-            role: "system",
-            content:
-              `You are a skilled translator from '${from.name}' to '${to.name}'.`,
-          },
-          {
-            role: "user",
-            content:
-              `Please only respond with the translation to '${to.name}' of '${text.trim()}', without adding any extra content.`,
-          },
-        ],
-        model: "google/gemma-3-27b-it:nebius",
-      }, {
-        baseURL: "https://router.huggingface.co/v1",
-        apiKey: Deno.env.get("HF_TOKEN"),
-      });
-    } catch (_) {
-      translated = await generateTextToTextSync({
-        messages: [
-          {
-            role: "system",
-            content:
-              `You are a skilled translator from '${from.name}' to '${to.name}'.`,
-          },
-          {
-            role: "user",
-            content:
-              `Please only respond with the translation to '${to.name}' of '${text.trim()}', without adding any extra content.`,
-          },
-        ],
-        model: "minimax-m2",
-      }, {
-        baseURL: "https://ollama.com/v1",
-        apiKey: Deno.env.get("OLLAMA_API_KEY"),
-      });
-    }
+    translated = await generateTextToTextSync({
+      messages: [
+        {
+          role: "system",
+          content:
+            `You are a skilled translator from '${from.name}' to '${to.name}'.`,
+        },
+        {
+          role: "user",
+          content:
+            `Please only respond with the translation to '${to.name}' of '${text.trim()}', without adding any extra content.`,
+        },
+      ],
+      model: "minimax-m2",
+    }, {
+      baseURL: "https://ollama.com/v1",
+      apiKey: Deno.env.get("OLLAMA_API_KEY"),
+    });
   }
+  // try {
+  //   const fromDictionary = await kv!.get<string | null>([
+  //     Keys.TRANSLATIONS,
+  //     hashed,
+  //   ]);
+
+  //   if (fromDictionary.value) {
+  //     return fromDictionary.value;
+  //   }
+
+  //   translated = await generateTextToTextSync({
+  //     messages: [
+  //       {
+  //         role: "system",
+  //         content:
+  //           `You are a skilled translator from '${from.name}' to '${to.name}'.`,
+  //       },
+  //       {
+  //         role: "user",
+  //         content:
+  //           `Please only respond with the translation to English of '${text.trim()}', without adding any extra content.`,
+  //       },
+  //     ],
+  //     model: "qwen-3-32b",
+  //   }, {
+  //     baseURL: "https://api.cerebras.ai/v1",
+  //     apiKey: Deno.env.get("CEREBRAS_API_KEY"),
+  //   });
+  // } catch (_) {
+  //   try {
+  //     translated = await generateTextToTextSync({
+  //       messages: [
+  //         {
+  //           role: "system",
+  //           content:
+  //             `You are a skilled translator from '${from.name}' to '${to.name}'.`,
+  //         },
+  //         {
+  //           role: "user",
+  //           content:
+  //             `Please only respond with the translation to '${to.name}' of '${text.trim()}', without adding any extra content.`,
+  //         },
+  //       ],
+  //       model: "google/gemma-3-27b-it:nebius",
+  //     }, {
+  //       baseURL: "https://router.huggingface.co/v1",
+  //       apiKey: Deno.env.get("HF_TOKEN"),
+  //     });
+  //   } catch (_) {
+  //     translated = await generateTextToTextSync({
+  //       messages: [
+  //         {
+  //           role: "system",
+  //           content:
+  //             `You are a skilled translator from '${from.name}' to '${to.name}'.`,
+  //         },
+  //         {
+  //           role: "user",
+  //           content:
+  //             `Please only respond with the translation to '${to.name}' of '${text.trim()}', without adding any extra content.`,
+  //         },
+  //       ],
+  //       model: "minimax-m2",
+  //     }, {
+  //       baseURL: "https://ollama.com/v1",
+  //       apiKey: Deno.env.get("OLLAMA_API_KEY"),
+  //     });
+  //   }
+  // }
 
   await kv!.set([Keys.TRANSLATIONS, hashed], translated);
   const hashedTo = hash(
