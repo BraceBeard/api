@@ -74,7 +74,6 @@ export const generateTextToTextSync = async function (
 
     return stream.choices[0].message.content;
   } catch (error) {
-    console.error("Error in generateTextWithOpenAI:", error);
-    return `Error: ${error instanceof Error ? error.message : "Unknown error occurred"}`;
+    throw error;
   }
 }
