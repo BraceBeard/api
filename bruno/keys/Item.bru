@@ -1,0 +1,20 @@
+meta {
+  name: Item
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{BASE_URL}}/key
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{TOKEN}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
