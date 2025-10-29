@@ -1,0 +1,25 @@
+meta {
+  name: Add
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/languages/add
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{TOKEN}}
+}
+
+body:multipart-form {
+  code: en
+  name: English
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

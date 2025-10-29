@@ -1,0 +1,25 @@
+meta {
+  name: Login
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{BASE_URL}}/users/login
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{TOKEN}}
+}
+
+body:multipart-form {
+  email: admin@zyneo.co
+  password: @Dm1n!
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
